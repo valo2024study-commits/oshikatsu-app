@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>推し活マップ - 思い出の地図</title>
+    <!-- 共通CSSファイルの読み込み -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+    <!-- Leaflet.js (マップ機能用CSS) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        /* 🗺️ マップ画面固有のスタイル */
+        .map-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            padding: 12px;
+        }
+
+        #map {
+            width: 100%;
+            height: 450px;
+            border-radius: 12px;
+            z-index: 1;
+        }
+
+        /* カスタムハートピンのスタイル */
+        .custom-heart-pin-wrap {
+            background: transparent;
+            border: none;
+        }
+
+        .custom-heart-pin {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.3));
+            transition: transform 0.2s ease;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .custom-heart-pin:hover {
+            transform: scale(1.3);
+        }
+
+        /* Leaflet ポップアップのスタイリング */
+        .leaflet-popup-content-wrapper {
+            border-radius: 14px;
+            padding: 6px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+
+        .leaflet-popup-content {
+            margin: 8px 12px;
+            line-height: 1.5;
+        }
+
+        .map-popup-card {
+            max-width: 240px;
+            font-family: inherit;
+        }
+
+        .map-popup-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+
+        .map-popup-title {
+            font-size: 1.05rem;
+            font-weight: bold;
+            color: #2f3542;
+            margin-bottom: 4px;
+            word-break: break-all;
+        }
+
+        .map-popup-location {
+            font-size: 0.85rem;
+            color: #57606f;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+
+        .map-popup-meta {
+            font-size: 0.8rem;
+            color: #a4b0be;
+            margin-bottom: 8px;
+        }
+
+        /* ポップアップ画像用スタイル */
+        .map-popup-image-wrap {
+            width: 100%;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #f1f2f6;
+        }
+
+        .map-popup-image {
+            width: 100%;
+            max-height: 150px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .map-popup-content-text {
+            font-size: 0.85rem;
+            color: #333;
+            background: #f1f2f6;
+            padding: 8px;
+            border-radius: 6px;
+            max-height: 80px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-bottom: 8px;
+        }
+
+        .map-popup-actions {
+            text-align: right;
+        }
+
+        .map-popup-edit-btn {
+            font-size: 0.8rem;
+            color: #70a1ff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .map-popup-edit-btn:hover {
+            text-decoration: underline;
+        }
+
+        .no-data-msg {
+            text-align: center;
+            padding: 20px;
+            color: #57606f;
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- ヘッダーエリア（共通クラスを適用） -->
+        <div class="header-nav">
+            <h1>🗺️ 推し活マップ</h1>
+            <div class="btn-group">
+                <a href="{{ url_for('calendar_page') }}" class="calendar-btn">📅 カレンダー</a>
+                <a href="{{ url_for('list_memos') }}" class="nav-btn btn-list">📋 一覧</a>
+                <a href="{{ url_for('add_page') }}" class="create-btn btn-add">✨ 新しい思い出</a>
+                <a href="{{ url_for('logout') }}" class="logout-link">ログアウト</a>
+            </div>
+        </div>
+
+        <!-- フラッシュメッセージ -->
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <div class="flash-messages" style="margin-bottom: 15px;">
+              {% for message in messages %}
+                <div class="flash-message">{{ message }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <div class="map-card">
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <!-- Leaflet.js JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 1. 地図の初期化 (デフォルトの中心: 日本)
+            const map = L.map('map').setView([36.2048, 138.2529], 5);
+
+            // 2. OpenStreetMap 地図タイルの表示
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 18
+            }).addTo(map);
+
+            const bounds = [];
+
+            // 3. バックエンドのログイン中ユーザー専用APIから位置情報メモを取得
+            fetch('/api/memos/locations')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('データの取得に失敗しました');
+                    }
+                    return response.json();
+                })
+                .then(locations => {
+                    if (!locations || locations.length === 0) {
+                        const infoNotice = L.control({ position: 'topright' });
+                        infoNotice.onAdd = function() {
+                            const div = L.DomUtil.create('div', 'no-data-msg');
+                            div.style.background = 'white';
+                            div.style.padding = '10px 15px';
+                            div.style.borderRadius = '8px';
+                            div.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
+                            div.innerHTML = '📍 位置情報が登録された思い出がまだありません。<br>「新しい思い出」から登録してみましょう！';
+                            return div;
+                        };
+                        infoNotice.addTo(map);
+                        return;
+                    }
+
+                    // 4. マップ上にピン（♥）を生成して立てる
+                    locations.forEach(loc => {
+                        const lat = parseFloat(loc.lat);
+                        const lng = parseFloat(loc.lng);
+
+                        if (isNaN(lat) || isNaN(lng)) return;
+
+                        bounds.push([lat, lng]);
+
+                        // 推しカラーを反映したハート型アイコン
+                        const heartIcon = L.divIcon({
+                            className: 'custom-heart-pin-wrap',
+                            html: `<div class="custom-heart-pin" style="color: ${loc.color || '#ff4757'};">♥</div>`,
+                            iconSize: [32, 32],
+                            iconAnchor: [16, 16],
+                            popupAnchor: [0, -16]
+                        });
+
+                        // 吹き出しの中身を作成
+                        let popupHtml = `
+                            <div class="map-popup-card">
+                                <span class="map-popup-badge" style="background-color: ${loc.color || '#ff4757'};">
+                                    ♥ ${escapeHtml(loc.oshi_name || '推し')}
+                                </span>
+                                <div class="map-popup-title">${escapeHtml(loc.title || '推し活')}</div>
+                                ${loc.location_name ? `<div class="map-popup-location">📍 ${escapeHtml(loc.location_name)}</div>` : ''}
+                                <div class="map-popup-meta">📅 ${escapeHtml(loc.date)}</div>
+                        `;
+
+                        // 写真（画像パス）が存在する場合は表示
+                        const imgPath = loc.image_path || loc.image || loc.image_url;
+                        if (imgPath) {
+                            const src = imgPath.startsWith('/') || imgPath.startsWith('http') 
+                                ? imgPath 
+                                : `/static/uploads/${imgPath}`;
+
+                            popupHtml += `
+                                <div class="map-popup-image-wrap">
+                                    <img src="${escapeHtml(src)}" class="map-popup-image" alt="思い出の写真" onerror="this.parentNode.style.display='none';">
+                                </div>
+                            `;
+                        }
+
+                        // メモ本文がある場合は表示
+                        if (loc.content) {
+                            popupHtml += `<div class="map-popup-content-text">${escapeHtml(loc.content)}</div>`;
+                        }
+
+                        // 編集ページへのリンク
+                        popupHtml += `
+                                <div class="map-popup-actions">
+                                    <a href="/edit/${loc.id}" class="map-popup-edit-btn">✏️ 編集する</a>
+                                </div>
+                            </div>
+                        `;
+
+                        // ピンを地図上に追加
+                        L.marker([lat, lng], { icon: heartIcon })
+                            .addTo(map)
+                            .bindPopup(popupHtml);
+                    });
+
+                    // 5. 登録されているピンが全て画面内に収まるように自動ズーム調整
+                    if (bounds.length > 0) {
+                        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+                    }
+                })
+                .catch(err => console.error('マップデータの読み込みエラー:', err));
+        });
+
+        // XSS対策のためのエスケープ関数
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>

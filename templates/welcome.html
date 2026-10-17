@@ -1,0 +1,103 @@
+<!-- templates/welcome.html -->
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ウェルカム｜推し活記録アプリ</title>
+    <!-- 共通CSSファイルの読み込み -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* welcome.html 固有のウェルカムボックススタイル */
+        .welcome-box {
+            text-align: center;
+            padding: 40px 20px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            max-width: 480px;
+            margin: 40px auto 0;
+        }
+
+        .welcome-title {
+            font-size: 2rem;
+            color: #ff4757;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .welcome-tagline {
+            color: #747d8c;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+        }
+
+        .welcome-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-width: 320px;
+            margin: 0 auto;
+        }
+
+        .welcome-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 0.95rem;
+            color: white;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+            transition: opacity 0.2s, transform 0.2s;
+        }
+
+        .welcome-btn:hover {
+            opacity: 0.88;
+            transform: translateY(-1px);
+        }
+
+        .welcome-btn.outline {
+            background-color: transparent;
+            color: #ff4757;
+            border: 2px solid #ff4757;
+            box-shadow: none;
+        }
+
+        @media (max-width: 600px) {
+            .welcome-box {
+                padding: 24px 16px;
+                margin-top: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="welcome-box">
+            <h1 class="welcome-title">💖 Oshikatsu Life</h1>
+            <p class="welcome-tagline">推しとの大切な思い出を、綺麗に残そう</p>
+
+            <div class="welcome-buttons">
+                {% if 'user_id' in session %}
+                    <!-- ログイン中の表示（共通ボタンカラー適用） -->
+                    <a href="{{ url_for('add_page') }}" class="welcome-btn btn-add">✨ 新しく思い出を記録する</a>
+                    <a href="{{ url_for('list_memos') }}" class="welcome-btn btn-map-add">📋 これまでの思い出を見る</a>
+                    <a href="{{ url_for('calendar_page') }}" class="welcome-btn btn-calendar">📅 カレンダーを見る</a>
+                    <a href="{{ url_for('map_page') }}" class="welcome-btn btn-map">🗺️ マップを見る</a>
+                    <a href="{{ url_for('logout') }}" class="welcome-btn outline" style="margin-top: 6px;">🚪 ログアウト</a>
+                {% else %}
+                    <!-- 未ログイン時の表示 -->
+                    <a href="{{ url_for('login') }}" class="welcome-btn btn-add">🔑 ログイン</a>
+                    <a href="{{ url_for('register') }}" class="welcome-btn btn-map-add">👤 新規登録</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

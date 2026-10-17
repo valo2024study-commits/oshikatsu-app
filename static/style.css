@@ -1,0 +1,570 @@
+/* ==========================================
+   全般・レイアウト基本設定
+   ========================================== */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Sans-Serif;
+    background-color: #f8f9fa;
+    margin: 0;
+    padding: 20px;
+    color: #2f3542;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* 認証画面用スリムコンテナ */
+.auth-container {
+    max-width: 400px;
+    background: white;
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    margin-top: 40px;
+}
+
+.auth-container h1 {
+    margin-top: 0;
+    font-size: 1.5rem;
+    text-align: center;
+}
+
+.auth-link-text {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+.auth-link-text a {
+    color: #70a1ff;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.auth-link-text a:hover {
+    text-decoration: underline;
+}
+
+/* フラッシュメッセージ */
+.flash-message {
+    padding: 10px 12px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    background-color: #ffeae8;
+    color: #ff4757;
+    font-size: 0.88rem;
+    font-weight: bold;
+    text-align: center;
+}
+
+/* ==========================================
+   フォーム共通スタイル
+   ========================================== */
+.form-group {
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-group label {
+    font-size: 0.88rem;
+    font-weight: bold;
+    color: #57606f;
+}
+
+.form-group input[type="text"],
+.form-group input[type="password"],
+.form-group input[type="date"],
+.form-group select,
+.form-group textarea,
+.form-control {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #dfe4ea;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus,
+.form-control:focus {
+    border-color: #70a1ff;
+}
+
+.submit-btn {
+    background-color: #ff4757;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.submit-btn:hover {
+    opacity: 0.88;
+}
+
+/* ==========================================
+   ヘッダー＆ナビゲーションボタンエリア
+   ========================================== */
+.header-actions, .header-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.btn-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    max-width: 100%;
+}
+
+.create-btn, .calendar-btn, .nav-btn {
+    padding: 8px 12px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    white-space: nowrap;
+    font-size: 0.85rem;
+    box-sizing: border-box;
+    transition: opacity 0.2s;
+}
+
+.create-btn:hover, .calendar-btn:hover, .nav-btn:hover {
+    opacity: 0.85;
+}
+
+.create-btn, .btn-map-add { background-color: #2ed573; }   /* 緑 */
+.calendar-btn { background-color: #ff7675; }              /* ピンク */
+.btn-map { background-color: #70a1ff; }                   /* 青 */
+.btn-add { background-color: #ff4757; }                   /* 赤 */
+.btn-list { background-color: #747d8c; }                  /* グレー */
+
+.logout-link {
+    color: #747d8c;
+    text-decoration: none;
+    font-size: 0.85em;
+    font-weight: bold;
+    white-space: nowrap;
+    padding: 6px 8px;
+}
+
+/* ==========================================
+   🔍 フィルターコントロールエリア
+   ========================================== */
+.filter-section {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 25px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 180px;
+}
+
+.filter-group label {
+    font-size: 0.75em;
+    font-weight: bold;
+    color: #747d8c;
+}
+
+.filter-input, .filter-select {
+    padding: 8px 12px;
+    border: 1px solid #dfe4ea;
+    border-radius: 8px;
+    font-size: 0.9em;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.filter-input:focus, .filter-select:focus {
+    border-color: #70a1ff;
+}
+
+.filter-reset-btn {
+    background-color: #f1f2f6;
+    color: #57606f;
+    border: none;
+    padding: 9px 14px;
+    border-radius: 8px;
+    font-size: 0.85em;
+    font-weight: bold;
+    cursor: pointer;
+    align-self: flex-end;
+    transition: background 0.2s;
+}
+
+.filter-reset-btn:hover {
+    background-color: #dfe4ea;
+}
+
+/* ==========================================
+   一覧画面（カード＆グリッド）
+   ========================================== */
+.memo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+}
+
+.memo-card {
+    background: white;
+    border-radius: 14px;
+    padding: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    border-left: 5px solid #4b7bec;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.memo-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+}
+
+.memo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.memo-date {
+    font-weight: bold;
+    color: #57606f;
+    font-size: 0.85em;
+}
+
+.activity-badge {
+    background-color: #eccc68;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    font-weight: bold;
+    display: inline-block;
+}
+
+.memo-activity-container {
+    margin-bottom: 6px;
+}
+
+.oshi-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 8px;
+    align-items: center;
+}
+
+.oshi-tag {
+    background-color: #ff7675;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    display: inline-block;
+}
+
+.memo-content {
+    font-size: 0.88em;
+    line-height: 1.4;
+    color: #2f3542;
+    white-space: pre-wrap;
+    margin-bottom: 10px;
+    display: -webkit-box;
+    line-clamp: 2;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.memo-photos-preview {
+    display: flex !important;
+    gap: 8px !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    padding-bottom: 6px !important;
+    margin-bottom: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+}
+
+.memo-photos-preview::-webkit-scrollbar {
+    display: block !important;
+    height: 5px;
+}
+
+.memo-photos-preview::-webkit-scrollbar-track {
+    background: #f1f2f6;
+    border-radius: 3px;
+}
+
+.memo-photos-preview::-webkit-scrollbar-thumb {
+    background: #ced6e0;
+    border-radius: 3px;
+}
+
+.memo-photos-preview img {
+    width: 160px !important;
+    height: 160px !important;
+    min-width: 160px !important;
+    object-fit: cover !important;
+    border-radius: 8px !important;
+    flex-shrink: 0 !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.card-actions {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+    margin-top: 6px;
+}
+
+.edit-btn, .delete-btn {
+    text-decoration: none;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.8em;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+}
+
+.edit-btn { background-color: #70a1ff; color: white; }
+.delete-btn { background-color: #ff4757; color: white; }
+
+/* ==========================================
+   ポップアップ・モーダルスタイル
+   ========================================== */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.modal-overlay.is-active {
+    display: flex;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 16px;
+    max-width: 500px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 24px;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    box-sizing: border-box;
+    border-top: 8px solid #ff4757;
+}
+
+.modal-close {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    font-size: 24px;
+    font-weight: bold;
+    color: #a4b0be;
+    cursor: pointer;
+    border: none;
+    background: none;
+    z-index: 10;
+}
+
+.modal-body-text {
+    font-size: 0.95em;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    color: #2f3542;
+    margin-bottom: 16px;
+    background-color: #f8f9fa;
+    padding: 14px;
+    border-radius: 10px;
+    border-left: 4px solid #dcdde1;
+}
+
+.modal-photo-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 15px 0;
+    width: 100%;
+}
+
+.modal-photo-item {
+    width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-photo-item img {
+    width: 100%;
+    height: auto;
+    max-height: 400px;
+    object-fit: contain;
+    display: block;
+}
+
+.modal-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 20px;
+    border-top: 1px solid #f1f2f6;
+    padding-top: 16px;
+}
+
+.btn-modal-edit {
+    text-decoration: none;
+    background-color: #70a1ff;
+    color: white;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 0.85rem;
+    transition: opacity 0.2s;
+    display: inline-flex;
+    align-items: center;
+}
+
+.btn-modal-download {
+    background-color: #2ed573;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.btn-modal-share {
+    background-color: #1e90ff;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.btn-modal-edit:hover, .btn-modal-download:hover, .btn-modal-share:hover {
+    opacity: 0.85;
+}
+
+/* ==========================================
+   📱 スマートフォン表示用（レスポンシブ）
+   ========================================== */
+@media (max-width: 600px) {
+    body {
+        padding: 12px;
+    }
+
+    .auth-container {
+        padding: 20px;
+        margin-top: 20px;
+    }
+
+    .header-actions, .header-nav {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .btn-group {
+        width: 100%;
+        gap: 6px;
+    }
+
+    .create-btn, .calendar-btn, .nav-btn {
+        padding: 7px 10px;
+        font-size: 0.8rem;
+        flex: 1 1 auto;
+        text-align: center;
+    }
+
+    .logout-link {
+        font-size: 0.8rem;
+        padding: 4px;
+    }
+
+    .memo-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .memo-photos-preview img {
+        width: 140px !important;
+        height: 140px !important;
+        min-width: 140px !important;
+    }
+
+    .filter-section {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-reset-btn {
+        align-self: stretch;
+    }
+}

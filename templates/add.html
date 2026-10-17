@@ -1,0 +1,404 @@
+<!-- templates/add.html -->
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新しい思い出を記録する｜推し活記録アプリ</title>
+    <!-- 共通CSSファイルの読み込み -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+    <!-- 📍 Leaflet.js (マップ機能用CSS) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        /* add.html 固有の補助スタイル */
+        .oshi-input-container {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .add-oshi-btn {
+            background-color: #4b7bec;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin-top: 4px;
+        }
+
+        .remove-oshi-btn {
+            background-color: #ff4757;
+            color: white;
+            border: none;
+            padding: 0 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* 📸 ドロップエリア風スタイル */
+        .drop-area {
+            border: 2px dashed #a4b0be;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            background-color: #f8f9fa;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+
+        .drop-area.highlight {
+            border-color: #ff4757;
+            background-color: #ffeae8;
+        }
+
+        /* 📍 マップ表示用スタイル */
+        #map-picker {
+            height: 250px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            margin-top: 8px;
+            z-index: 1;
+        }
+
+        /* 💡 位置自動セット時の通知メッセージ用 */
+        .gps-notice {
+            background-color: #eccc68;
+            color: #2f3542;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin-top: 8px;
+            display: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>新しい推し活の思い出</h1>
+
+        <!-- 📸 複数画像をアップロードできるように enctype="multipart/form-data" を指定 -->
+        <form action="{{ url_for('add_page') }}" method="POST" enctype="multipart/form-data">
+
+            <!-- 1. 日付入力 -->
+            <div class="form-group">
+                <label for="oshikatsu_date">📅 推し活した日</label>
+                <input type="date" id="oshikatsu_date" name="oshikatsu_date" required>
+            </div>
+
+            <!-- 💡 推し活の種類選択 -->
+            <div class="form-group">
+                <label for="activity_type">🎪 推し活の種類</label>
+                <select name="activity_type" id="activity_type" class="form-control">
+                    <option value="ライブ">🎤 ライブ・コンサート</option>
+                    <option value="コラボカフェ">☕ コラボカフェ</option>
+                    <option value="グッズ購入">🛍️ グッズ購入・物販</option>
+                    <option value="聖地巡礼">🗺️ 聖地巡礼</option>
+                    <option value="イベント">🎪 握手会・トークショー</option>
+                    <option value="鑑賞会">📺 鑑賞会（おうち・シアター）</option>
+                    <option value="その他" selected>✨ その他</option>
+                </select>
+            </div>
+
+            <!-- 2. 推しの名前（動的追加ボックス機能付き） -->
+            <div class="form-group">
+                <label>👤 推しの名前</label>
+                <div id="oshi-names-wrapper">
+                    <div class="oshi-input-container">
+                        <input type="text" name="oshi_names" placeholder="例: 推しA" required>
+                    </div>
+                </div>
+                <button type="button" class="add-oshi-btn" id="add-oshi-input-btn">＋ 推しを追加する</button>
+            </div>
+
+            <!-- 📍 追加: 場所・会場の入力 -->
+            <div class="form-group">
+                <label for="location_name">📍 場所・会場名</label>
+                <input type="text" id="location_name" name="location_name" placeholder="例: 東京ドーム、タワーレコード渋谷店">
+                <small style="color: #666; font-size: 0.85em; display: block; margin-top: 4px;">
+                    ※入力すると自動でマップに登録されます。写真をアップロードすると撮影場所に自動調整されます。ズレている場合は下のマップをタップして微調整可能です。
+                </small>
+                
+                <!-- マップでのピン選択エリア -->
+                <div id="map-picker"></div>
+                <div id="gps-notice" class="gps-notice"></div>
+
+                <!-- 位置情報を保持する隠し入力フィールド -->
+                <input type="hidden" id="lat" name="lat">
+                <input type="hidden" id="lng" name="lng">
+            </div>
+
+            <!-- 3. イメージカラー選択 -->
+            <div class="form-group">
+                <label for="color">🎨 推し・思い出のイメージカラー</label>
+                <div class="color-picker-container">
+                    <input type="color" id="color" name="color" value="#ff4757">
+                </div>
+            </div>
+
+            <!-- 4. 本文入力 -->
+            <div class="form-group">
+                <label for="content">📝 思い出の内容</label>
+                <textarea id="content" name="content" rows="5" placeholder="楽しかった思い出を自由に書きましょう！" required></textarea>
+            </div>
+
+            <!-- 5. 写真選択（複数選択・追加に対応） -->
+            <div class="form-group">
+                <label for="image_files">📸 写真を選ぶ (複数選択OK！)</label>
+                
+                <div class="drop-area" id="drop-area">
+                    <p style="margin: 0; color: #57606f; font-size: 0.95em;">
+                        📁 クリックして写真を選択（複数OK）<br>
+                        <span style="font-size: 0.8em; color: #888;">またはここに画像をドラッグ＆ドロップ</span>
+                    </p>
+                    <input type="file" id="image_files" name="image_files" accept="image/*" multiple style="display: none;">
+                </div>
+
+                <!-- 💡 選択した写真のプレビューと×ボタンが表示される場所 -->
+                <div id="preview-container" style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 15px;"></div>
+            </div>
+
+            <!-- ボタンエリア（共通ボタンクラスを適用） -->
+            <div class="form-actions" style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="submit" class="create-btn btn-map-add" style="flex: 1; border: none; cursor: pointer;">✨ 思い出を保存する</button>
+                <a href="{{ url_for('list_memos') }}" class="nav-btn btn-list">キャンセル</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- 📍 Leaflet.js JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- 📸 Exif解析用JavaScriptライブラリ -->
+    <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
+
+    <!-- 💡 アプリケーションの動きを作るJavaScript -->
+    <script>
+        // 今日の日付をデフォルトセット
+        document.getElementById('oshikatsu_date').valueAsDate = new Date();
+
+        // ========================================================
+        // 📍 マップ初期化処理（ピンを刺して緯度経度を自動セット）
+        // ========================================================
+        const defaultLat = 35.681236; // 初期表示 (東京駅周辺)
+        const defaultLng = 139.767125;
+        const map = L.map('map-picker').setView([defaultLat, defaultLng], 12);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        let marker;
+
+        // ピン設置・更新用共通関数
+        function updateMarker(lat, lng, zoom = 14) {
+            document.getElementById('lat').value = lat;
+            document.getElementById('lng').value = lng;
+
+            const latlng = [lat, lng];
+
+            if (marker) {
+                marker.setLatLng(latlng);
+            } else {
+                marker = L.marker(latlng).addTo(map);
+            }
+            map.setView(latlng, zoom);
+        }
+
+        // 手動タップ時の位置微調整処理
+        map.on('click', function (e) {
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+            updateMarker(lat, lng, map.getZoom());
+
+            const notice = document.getElementById('gps-notice');
+            notice.style.display = 'block';
+            notice.innerHTML = '📌 手動で位置を微調整しました！';
+        });
+
+        // ========================================================
+        // 👥 推しの名前入力ボックスを増減させる処理
+        // ========================================================
+        const wrapper = document.getElementById('oshi-names-wrapper');
+        const addBtn = document.getElementById('add-oshi-input-btn');
+
+        addBtn.addEventListener('click', () => {
+            const newField = document.createElement('div');
+            newField.className = 'oshi-input-container';
+            newField.innerHTML = `
+                <input type="text" name="oshi_names" placeholder="次の推しの名前">
+                <button type="button" class="remove-oshi-btn">×</button>
+            `;
+            wrapper.appendChild(newField);
+
+            newField.querySelector('.remove-oshi-btn').addEventListener('click', () => {
+                newField.remove();
+            });
+        });
+
+        // ========================================================
+        // 📸 画像のExif(GPS)自動解析 ＆ マップ反映関数
+        // ========================================================
+        function checkImageGps(file) {
+            EXIF.getData(file, function () {
+                const latData = EXIF.getTag(this, "GPSLatitude");
+                const latRef = EXIF.getTag(this, "GPSLatitudeRef");
+                const lngData = EXIF.getTag(this, "GPSLongitude");
+                const lngRef = EXIF.getTag(this, "GPSLongitudeRef");
+
+                if (latData && lngData && latRef && lngRef) {
+                    // DMS形式から10進数へ変換
+                    const convertDMSToDD = (dms, ref) => {
+                        let dd = dms[0] + (dms[1] / 60) + (dms[2] / 3600);
+                        if (ref === "S" || ref === "W") {
+                            dd = dd * -1;
+                        }
+                        return dd;
+                    };
+
+                    const lat = convertDMSToDD(latData, latRef);
+                    const lng = convertDMSToDD(lngData, lngRef);
+
+                    // マップとピンを更新
+                    updateMarker(lat, lng, 15);
+
+                    // 通知を表示
+                    const notice = document.getElementById('gps-notice');
+                    notice.style.display = 'block';
+                    notice.innerHTML = '📍 写真から撮影場所を自動検出しました！ズレている場合は地図をタップして微調整できます。';
+                }
+            });
+        }
+
+        // ========================================================
+        // 📸 選択した写真をプレビュー＆複数追加・削除に対応する処理
+        // ========================================================
+        const imageInput = document.getElementById('image_files');
+        const dropArea = document.getElementById('drop-area');
+        const previewContainer = document.getElementById('preview-container');
+
+        let selectedFiles = [];
+
+        dropArea.addEventListener('click', () => {
+            imageInput.click();
+        });
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, () => dropArea.classList.add('highlight'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, () => dropArea.classList.remove('highlight'), false);
+        });
+
+        dropArea.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = Array.from(dt.files).filter(file => file.type.startsWith('image/'));
+            addFiles(files);
+        });
+
+        imageInput.addEventListener('change', () => {
+            if (imageInput.files) {
+                const newFiles = Array.from(imageInput.files);
+                addFiles(newFiles);
+            }
+        });
+
+        function addFiles(newFiles) {
+            newFiles.forEach(file => {
+                if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                    selectedFiles.push(file);
+                    // 選択された画像からGPS情報を自動チェックして地図に反映
+                    checkImageGps(file);
+                }
+            });
+            updateInputFiles();
+            renderPreviews();
+        }
+
+        function renderPreviews() {
+            previewContainer.innerHTML = '';
+
+            selectedFiles.forEach((file, index) => {
+                const reader = new FileReader();
+
+                reader.onload = (e) => {
+                    const imgWrapper = document.createElement('div');
+                    imgWrapper.style.position = 'relative';
+                    imgWrapper.style.width = '100px';
+                    imgWrapper.style.height = '100px';
+
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.width = '100%';
+                    img.style.height = '100%';
+                    img.style.objectFit = 'cover';
+                    img.style.borderRadius = '8px';
+                    img.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.type = 'button';
+                    deleteBtn.innerHTML = '×';
+                    deleteBtn.style.position = 'absolute';
+                    deleteBtn.style.top = '-6px';
+                    deleteBtn.style.right = '-6px';
+                    deleteBtn.style.width = '22px';
+                    deleteBtn.style.height = '22px';
+                    deleteBtn.style.borderRadius = '50%';
+                    deleteBtn.style.backgroundColor = '#ff4757';
+                    deleteBtn.style.color = 'white';
+                    deleteBtn.style.border = 'none';
+                    deleteBtn.style.cursor = 'pointer';
+                    deleteBtn.style.fontSize = '14px';
+                    deleteBtn.style.fontWeight = 'bold';
+                    deleteBtn.style.display = 'flex';
+                    deleteBtn.style.alignItems = 'center';
+                    deleteBtn.style.justifyContent = 'center';
+                    deleteBtn.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+                    deleteBtn.style.zIndex = '10';
+
+                    deleteBtn.addEventListener('click', (event) => {
+                        event.stopPropagation();
+                        selectedFiles.splice(index, 1);
+                        updateInputFiles();
+                        renderPreviews();
+                    });
+
+                    imgWrapper.appendChild(img);
+                    imgWrapper.appendChild(deleteBtn);
+                    previewContainer.appendChild(imgWrapper);
+                };
+
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function updateInputFiles() {
+            const dataTransfer = new DataTransfer();
+            selectedFiles.forEach(file => {
+                dataTransfer.items.add(file);
+            });
+            imageInput.files = dataTransfer.files;
+        }
+    </script>
+</body>
+
+</html>

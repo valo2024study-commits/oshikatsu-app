@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>推し活カレンダー</title>
+    <!-- 共通CSSファイルの読み込み -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+    <!-- FullCalendar (カレンダー描画ライブラリ) の読み込み -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+    
+    <!-- HTML要素を画像に変換するライブラリ html2canvas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        /* 📅 カレンダー用コンテナ */
+        .calendar-container {
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 15px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        
+        /* 📅 カレンダータイトル＆ヘッダーの改行防止 */
+        .fc-toolbar-title {
+            white-space: nowrap !important;
+            font-size: 1.25rem !important;
+            font-weight: bold;
+            color: #2f3542;
+        }
+
+        .fc-toolbar {
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        /* 📅 カレンダー内の曜日・日付の数字・イベントの改行防止 */
+        .fc-col-header-cell-cushion, /* 曜日 */
+        .fc-daygrid-day-number,     /* 日付の数字 (1日, 2日...) */
+        .fc-event-main {            /* イベントエリア */
+            white-space: nowrap !important;
+            word-break: keep-all !important;
+        }
+
+        .fc-event {
+            background-color: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            cursor: pointer;
+            padding: 2px 4px;
+        }
+
+        .oshi-heart-event {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2px;
+            transition: transform 0.15s ease, opacity 0.15s ease;
+        }
+
+        .oshi-heart-event:hover {
+            transform: scale(1.25);
+            opacity: 0.85;
+        }
+
+        /* カレンダー上のハートマーク（♥）のサイズ調整 */
+        .oshi-heart-icon {
+            font-size: 1.4rem;
+            line-height: 1;
+            display: inline-block;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+        }
+
+        /* 📱 カレンダー特有のスマホ調整 */
+        @media (max-width: 600px) {
+            .calendar-container {
+                padding: 6px;
+                margin: 10px auto;
+            }
+
+            .fc-toolbar-title {
+                font-size: 1.05rem !important;
+            }
+
+            .fc-daygrid-day-number {
+                font-size: 0.8rem !important;
+                padding: 2px 4px !important;
+            }
+
+            .fc-col-header-cell-cushion {
+                font-size: 0.8rem !important;
+                padding: 2px 0 !important;
+            }
+
+            .fc-daygrid-day-frame {
+                min-height: 48px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- ヘッダーエリア（共通クラスを適用） -->
+        <div class="header-nav">
+            <h1>📅 推し活カレンダー</h1>
+            <div class="btn-group">
+                <a href="{{ url_for('map_page') }}" class="nav-btn btn-map">🗺️ マップ</a>
+                <a href="{{ url_for('add_page') }}" class="create-btn btn-add">✨ 新しい思い出</a>
+                <a href="{{ url_for('list_memos') }}" class="nav-btn btn-list">📋 一覧で見る</a>
+            </div>
+        </div>
+
+        <div class="calendar-container">
+            <div id="calendar"></div>
+        </div>
+    </div>
+
+    <!-- 思い出詳細ポップアップ（モーダル） -->
+    <div id="memoModal" class="modal-overlay" onclick="closeModal(event)">
+        <div class="modal-content" id="modalCard">
+            <button class="modal-close" onclick="hideModal()">&times;</button>
+            
+            <div id="shareCaptureArea" style="padding: 10px; background-color: #ffffff; border-radius: 12px;">
+                <div class="modal-header-badges" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: center;">
+                    <span class="modal-date-badge" id="modalDate" style="background-color: #f1f2f6; padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; color: #57606f;">📅 2026-01-01</span>
+                    <span class="activity-badge" id="modalActivity">活動内容</span>
+                    <div id="modalOshiContainer" style="display: inline-flex; flex-wrap: wrap; gap: 6px;"></div>
+                </div>
+
+                <div class="modal-body-text" id="modalContent"></div>
+
+                <!-- 画像表示エリア -->
+                <div class="modal-photo-list" id="modalGallery"></div>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-modal-download" onclick="downloadImage()">💾 画像を保存</button>
+                <button type="button" class="btn-modal-share" onclick="shareImage()">📲 共有</button>
+                <a id="modalEditBtn" href="#" class="btn-modal-edit">✏️ 編集</a>
+                <form id="modalDeleteForm" action="" method="POST" style="display: inline;" onsubmit="return confirm('この思い出を削除してもよろしいですか？');">
+                    <button type="submit" class="delete-btn" style="padding: 8px 14px; font-size: 0.85rem;">🗑️ 削除</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const calendarEl = document.getElementById('calendar');
+            const isMobile = window.innerWidth <= 600;
+
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'ja',
+                height: 'auto',
+                aspectRatio: isMobile ? 0.85 : 1.35,
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: ''
+                },
+                buttonText: {
+                    today: '今日'
+                },
+                
+                // FlaskのAPIからイベントを取得
+                events: '/api/memos',
+                
+                // カレンダー内の各イベント表示カスタマイズ（♥マークのみを大きめで表示）
+                eventContent: function(arg) {
+                    const props = arg.event.extendedProps || {};
+                    const eventColor = arg.event.backgroundColor || props.color || arg.event.borderColor || '#ff4757';
+                    
+                    let tooltipTitle = '';
+                    if (props.oshi_names) {
+                        tooltipTitle = Array.isArray(props.oshi_names) ? props.oshi_names.join(', ') : props.oshi_names;
+                    } else if (props.oshi_name) {
+                        tooltipTitle = props.oshi_name;
+                    } else if (arg.event.title && arg.event.title !== 'undefined') {
+                        tooltipTitle = arg.event.title;
+                    } else {
+                        tooltipTitle = '推し活メモ';
+                    }
+
+                    const container = document.createElement('div');
+                    container.className = 'oshi-heart-event';
+                    container.title = tooltipTitle;
+
+                    const heartIcon = document.createElement('span');
+                    heartIcon.className = 'oshi-heart-icon';
+                    heartIcon.style.color = eventColor;
+                    heartIcon.textContent = '♥';
+
+                    container.appendChild(heartIcon);
+                    
+                    return { domNodes: [container] };
+                },
+
+                // カレンダーのイベントクリック時
+                eventClick: function(info) {
+                    info.jsEvent.preventDefault();
+                    
+                    const props = info.event.extendedProps || {};
+                    const eventColor = info.event.backgroundColor || props.color || '#ff4757';
+
+                    document.getElementById('modalCard').style.borderTopColor = eventColor;
+
+                    // 1. 日付
+                    const dateStr = info.event.startStr || props.date || '';
+                    document.getElementById('modalDate').textContent = `📅 ${dateStr}`;
+
+                    // 2. 活動内容
+                    const activityBadge = document.getElementById('modalActivity');
+                    if (props.activity_type) {
+                        activityBadge.textContent = props.activity_type;
+                        activityBadge.style.display = 'inline-block';
+                    } else {
+                        activityBadge.style.display = 'none';
+                    }
+
+                    // 3. 推しの名前バッジ
+                    const oshiContainer = document.getElementById('modalOshiContainer');
+                    oshiContainer.innerHTML = '';
+
+                    let oshiList = [];
+                    if (props.oshi_names) {
+                        if (Array.isArray(props.oshi_names)) {
+                            oshiList = props.oshi_names;
+                        } else if (typeof props.oshi_names === 'string') {
+                            oshiList = props.oshi_names.split(',').map(s => s.trim()).filter(Boolean);
+                        }
+                    } else if (props.oshi_name) {
+                        oshiList = [props.oshi_name];
+                    } else if (info.event.title && info.event.title !== '推し活') {
+                        oshiList = [info.event.title];
+                    }
+
+                    if (oshiList.length > 0) {
+                        oshiList.forEach(name => {
+                            const badge = document.createElement('span');
+                            badge.className = 'oshi-tag';
+                            badge.style.backgroundColor = eventColor;
+                            badge.textContent = `♥ ${name}`;
+                            oshiContainer.appendChild(badge);
+                        });
+                    } else {
+                        const badge = document.createElement('span');
+                        badge.className = 'oshi-tag';
+                        badge.style.backgroundColor = eventColor;
+                        badge.textContent = '♥ 推し活';
+                        oshiContainer.appendChild(badge);
+                    }
+
+                    // 4. 本文テキスト
+                    document.getElementById('modalContent').textContent = props.content || info.event.title || '（内容なし）';
+
+                    // 5. 画像表示処理
+                    const galleryContainer = document.getElementById('modalGallery');
+                    galleryContainer.innerHTML = '';
+
+                    if (props.image_files && Array.isArray(props.image_files) && props.image_files.length > 0) {
+                        props.image_files.forEach(relativePath => {
+                            const wrapper = document.createElement('div');
+                            wrapper.className = 'modal-photo-item';
+
+                            const img = document.createElement('img');
+                            img.crossOrigin = 'anonymous';
+                            img.src = '/static/uploads/' + relativePath;
+                            img.alt = '推し活の思い出写真';
+
+                            wrapper.appendChild(img);
+                            galleryContainer.appendChild(wrapper);
+                        });
+                    }
+
+                    // 6. 編集・削除アクションのURL指定
+                    const memoId = info.event.id;
+                    document.getElementById('modalEditBtn').href = `/edit/${memoId}`;
+                    document.getElementById('modalDeleteForm').action = `/delete/${memoId}`;
+
+                    document.getElementById('memoModal').classList.add('is-active');
+                }
+            });
+            
+            calendar.render();
+        });
+
+        function hideModal() {
+            document.getElementById('memoModal').classList.remove('is-active');
+        }
+
+        function closeModal(event) {
+            if (event.target.id === 'memoModal') {
+                hideModal();
+            }
+        }
+
+        // キャプチャ処理ヘルパー関数
+        function generateCanvas() {
+            const captureElement = document.getElementById('shareCaptureArea');
+            const isMobile = window.innerWidth <= 768;
+            
+            return html2canvas(captureElement, {
+                scale: isMobile ? 1.5 : 2,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                onclone: (clonedDoc) => {
+                    const clonedArea = clonedDoc.getElementById('shareCaptureArea');
+                    if (clonedArea) {
+                        clonedArea.style.width = '100%';
+                        clonedArea.style.maxWidth = '400px';
+                    }
+                }
+            });
+        }
+
+        // 1. 画像保存機能
+        function downloadImage() {
+            const dateText = document.getElementById('modalDate').textContent.replace('📅 ', '');
+            
+            generateCanvas().then(canvas => {
+                const dataUrl = canvas.toDataURL('image/png');
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                
+                if (isIOS) {
+                    const newWindow = window.open();
+                    if (newWindow) {
+                        newWindow.document.write(`
+                            <html>
+                                <head><title>画像の保存</title><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+                                <body style="margin:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#111; color:#fff; min-height:100vh; font-family:sans-serif;">
+                                    <p style="margin:15px; font-size:14px; text-align:center;">画像を長押しして「写真に追加」または「保存」を選択してください</p>
+                                    <img src="${dataUrl}" style="max-width:90%; height:auto; border-radius:8px; box-shadow:0 4px 12px rgba(255,255,255,0.2);" />
+                                </body>
+                            </html>
+                        `);
+                    } else {
+                        alert('ポップアップがブロックされました。ブラウザの設定をご確認ください。');
+                    }
+                } else {
+                    const link = document.createElement('a');
+                    link.download = `oshikatsu_${dateText}.png`;
+                    link.href = dataUrl;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            }).catch(err => {
+                console.error('画像生成エラー:', err);
+                alert('画像の生成に失敗しました。');
+            });
+        }
+
+        // 2. SNS共有機能
+        function shareImage() {
+            const dateText = document.getElementById('modalDate').textContent.replace('📅 ', '');
+
+            generateCanvas().then(canvas => {
+                canvas.toBlob(blob => {
+                    if (!blob) {
+                        alert('画像の生成に失敗しました。');
+                        return;
+                    }
+
+                    const file = new File([blob], `oshikatsu_${dateText}.png`, { type: 'image/png' });
+
+                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                        navigator.share({
+                            files: [file]
+                        }).catch(err => {
+                            if (err.name !== 'AbortError') {
+                                console.error('共有エラー:', err);
+                                alert('画像の直接共有に失敗しました。「画像を保存」をしてから送信してください。');
+                            }
+                        });
+                    } else {
+                        alert('お使いのブラウザは画像の直接共有に対応していません。「画像を保存」ボタンをご利用ください。');
+                    }
+                }, 'image/png');
+            }).catch(err => {
+                console.error('生成エラー:', err);
+                alert('画像の生成に失敗しました。');
+            });
+        }
+    </script>
+</body>
+</html>

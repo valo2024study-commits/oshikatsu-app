@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>推し活メモ一覧｜推し活記録アプリ</title>
+    <!-- 共通CSSファイルの読み込み -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=7">
+
+    <!-- HTML要素を画像に変換するライブラリ html2canvas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- ヘッダーエリア -->
+        <div class="header-actions">
+            <h1>💖 推し活思い出一覧</h1>
+            <div class="btn-group">
+                <a href="{{ url_for('calendar_page') }}" class="calendar-btn">📅 カレンダー</a>
+                <a href="{{ url_for('map_page') }}" class="nav-btn btn-map">🗺️ マップ</a>
+                <a href="{{ url_for('add_page') }}" class="create-btn">＋ 新しく記録する</a>
+                <a href="{{ url_for('logout') }}" class="logout-link">ログアウト</a>
+            </div>
+        </div>
+
+        <!-- フラッシュメッセージ -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div style="padding: 10px; margin-bottom: 15px; border-radius: 6px; background-color: #d4edda; color: #155724;">
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- 🔍 絞り込みフィルターバー -->
+        {% if memos %}
+        <div class="filter-section">
+            <div class="filter-group">
+                <label for="filter-search">フリーワード検索</label>
+                <input type="text" id="filter-search" class="filter-input" placeholder="キーワードを入力...">
+            </div>
+            <div class="filter-group">
+                <label for="filter-oshi">推しで絞り込み</label>
+                <select id="filter-oshi" class="filter-select">
+                    <option value="">すべての推し</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="filter-activity">推し活の種類</label>
+                <select id="filter-activity" class="filter-select">
+                    <option value="">すべての種類</option>
+                </select>
+            </div>
+            <button type="button" id="filter-reset" class="filter-reset-btn">🔄 条件クリア</button>
+        </div>
+        {% endif %}
+
+        <!-- メモ一覧カードリスト -->
+        {% if memos %}
+            <div class="memo-grid" id="memo-grid">
+                {% for memo in memos %}
+                <!-- 検索用データ属性を設定 -->
+                {% set raw_oshi = memo.oshi_names or memo.oshi_name %}
+                {% if raw_oshi is string %}
+                    {% set oshi_text = raw_oshi.replace('、', ',').replace(' ', ',') %}
+                {% else %}
+                    {% set oshi_text = raw_oshi|join(',') if raw_oshi else '' %}
+                {% endif %}
+
+                <div class="memo-card js-open-modal" 
+                     data-target="modal-{{ memo.id }}" 
+                     data-oshi="{{ oshi_text }}" 
+                     data-activity="{{ memo.activity_type or '' }}"
+                     style="border-left-color: {{ memo.color or '#4b7bec' }};">
+                    <div style="width: 100%; pointer-events: none;"> <!-- 子要素の余計なイベント干渉を抑止 -->
+                        <div class="memo-header">
+                            <span class="memo-date">📅 {{ memo.oshikatsu_date }}</span>
+                        </div>
+
+                        <!-- 推し活の種類 -->
+                        {% if memo.activity_type %}
+                        <div class="memo-activity-container">
+                            <span class="activity-badge">{{ memo.activity_type }}</span>
+                        </div>
+                        {% endif %}
+
+                        <!-- 推しタグ展開処理 -->
+                        {% if raw_oshi %}
+                            <div class="oshi-tags">
+                                {% if raw_oshi is string %}
+                                    {% set name_list = raw_oshi.replace('、', ',').replace(' ', ',').split(',') %}
+                                {% else %}
+                                    {% set name_list = raw_oshi %}
+                                {% endif %}
+
+                                {% for name in name_list %}
+                                    {% if name and name|string|trim %}
+                                    <span class="oshi-tag" style="background-color: {{ memo.color or '#ff7675' }};">♥ {{ name|string|trim }}</span>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <div class="memo-content">{{ memo.content }}</div>
+                    </div>
+
+                    <!-- 写真プレビュー（左右スワイプ操作を有効化するためポインターイベントON） -->
+                    {% if memo.image_files %}
+                    <div class="memo-photos-preview js-prevent-click" style="pointer-events: auto;">
+                        {% for img in memo.image_files %}
+                        <img src="{{ url_for('static', filename='uploads/' + img) }}" alt="推し活写真">
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- 操作ボタン（編集・削除クリック時はモーダルを開かない） -->
+                    <div class="card-actions js-prevent-click" style="pointer-events: auto;">
+                        <a href="{{ url_for('edit_memo', memo_id=memo.id) }}" class="edit-btn">編集</a>
+                        <form action="{{ url_for('delete_memo', memo_id=memo.id) }}" method="POST" onsubmit="return confirm('本当に削除しますか？');" style="display:inline;">
+                            <button type="submit" class="delete-btn">削除</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- モーダル（詳細画面） -->
+                <div id="modal-{{ memo.id }}" class="modal-overlay js-modal">
+                    <div class="modal-content" style="border-top-color: {{ memo.color or '#ff4757' }};">
+                        <button class="modal-close js-close-modal">&times;</button>
+                        
+                        <!-- キャプチャ対象エリア -->
+                        <div class="shareCaptureArea" style="padding: 10px; background-color: #ffffff; border-radius: 12px;">
+                            <div style="font-size: 0.9em; color: #747d8c; margin-bottom: 8px; font-weight: bold;" class="modal-date-text">📅 {{ memo.oshikatsu_date }}</div>
+
+                            <div class="oshi-tags" style="margin-bottom: 15px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
+                                {% if memo.activity_type %}
+                                <span class="activity-badge" style="margin: 0;">{{ memo.activity_type }}</span>
+                                {% endif %}
+
+                                <!-- モーダル側推しタグ展開処理 -->
+                                {% if raw_oshi %}
+                                    {% if raw_oshi is string %}
+                                        {% set modal_name_list = raw_oshi.replace('、', ',').replace(' ', ',').split(',') %}
+                                    {% else %}
+                                        {% set modal_name_list = raw_oshi %}
+                                    {% endif %}
+                                    {% for name in modal_name_list %}
+                                        {% if name and name|string|trim %}
+                                        <span class="oshi-tag" style="background-color: {{ memo.color or '#ff7675' }};">♥ {{ name|string|trim }}</span>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+
+                            <!-- モーダル内写真（縦並び） -->
+                            {% if memo.image_files %}
+                            <div class="modal-photo-list">
+                                {% for img in memo.image_files %}
+                                <div class="modal-photo-item">
+                                    <img src="{{ url_for('static', filename='uploads/' + img) }}" crossorigin="anonymous" alt="推し活写真">
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+
+                            <div class="modal-body-text">{{ memo.content }}</div>
+                        </div>
+
+                        <!-- モーダル下部ボタン -->
+                        <div class="modal-actions">
+                            <button type="button" class="btn-modal-download" onclick="downloadImage('modal-{{ memo.id }}')">💾 画像を保存</button>
+                            <button type="button" class="btn-modal-share" onclick="shareImage('modal-{{ memo.id }}')">📲 共有</button>
+                            <a href="{{ url_for('edit_memo', memo_id=memo.id) }}" class="btn-modal-edit">✏️ 編集</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- 検索ヒットゼロ時のメッセージ -->
+            <p id="no-results-msg" style="display: none; color: #747d8c; text-align: center; margin-top: 40px; font-size: 0.95em;">
+                条件に該当する推し活メモが見つかりませんでした 🔍
+            </p>
+        {% else %}
+            <p style="color: #747d8c; text-align: center; margin-top: 40px;">まだ推し活の記録がありません。「＋ 新しく記録する」から追加してみましょう！</p>
+        {% endif %}
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 写真スクロール領域・編集/削除ボタンクリック時にカード本体のクリックイベントを発火させない制御
+            document.querySelectorAll('.js-prevent-click').forEach(function(element) {
+                element.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                });
+            });
+
+            // カード全体（どこを押しても）モーダルを開く処理
+            document.querySelectorAll('.js-open-modal').forEach(function(card) {
+                card.addEventListener('click', function(e) {
+                    const targetId = this.getAttribute('data-target');
+                    const modal = document.getElementById(targetId);
+                    
+                    if (modal) {
+                        modal.classList.add('is-active');
+                        document.body.style.overflow = 'hidden';
+                    }
+                });
+            });
+
+            document.querySelectorAll('.js-close-modal').forEach(function(button) {
+                button.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const modal = this.closest('.modal-overlay');
+                    if (modal) {
+                        modal.classList.remove('is-active');
+                        document.body.style.overflow = 'auto';
+                    }
+                });
+            });
+
+            document.querySelectorAll('.js-modal').forEach(function(modal) {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        this.classList.remove('is-active');
+                        document.body.style.overflow = 'auto';
+                    }
+                });
+            });
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    document.querySelectorAll('.modal-overlay.is-active').forEach(function(modal) {
+                        modal.classList.remove('is-active');
+                    });
+                    document.body.style.overflow = 'auto';
+                }
+            });
+
+            // 🔍 絞り込みフィルターロジック
+            const cards = document.querySelectorAll('.memo-card');
+            const searchInput = document.getElementById('filter-search');
+            const oshiSelect = document.getElementById('filter-oshi');
+            const activitySelect = document.getElementById('filter-activity');
+            const resetButton = document.getElementById('filter-reset');
+            const noResultsMsg = document.getElementById('no-results-msg');
+
+            if (cards.length > 0) {
+                const oshiSet = new Set();
+                const activitySet = new Set();
+
+                cards.forEach(card => {
+                    const oshiAttr = card.getAttribute('data-oshi');
+                    if (oshiAttr) {
+                        oshiAttr.split(',').forEach(o => {
+                            const trimmed = o.trim();
+                            if (trimmed) oshiSet.add(trimmed);
+                        });
+                    }
+
+                    const actAttr = card.getAttribute('data-activity');
+                    if (actAttr && actAttr.trim()) {
+                        activitySet.add(actAttr.trim());
+                    }
+                });
+
+                oshiSet.forEach(oshi => {
+                    const opt = document.createElement('option');
+                    opt.value = oshi;
+                    opt.textContent = oshi;
+                    oshiSelect.appendChild(opt);
+                });
+
+                activitySet.forEach(act => {
+                    const opt = document.createElement('option');
+                    opt.value = act;
+                    opt.textContent = act;
+                    activitySelect.appendChild(opt);
+                });
+
+                function filterCards() {
+                    const searchText = searchInput.value.toLowerCase().trim();
+                    const selectedOshi = oshiSelect.value.trim();
+                    const selectedActivity = activitySelect.value.trim();
+
+                    let visibleCount = 0;
+
+                    cards.forEach(card => {
+                        const contentText = card.textContent.toLowerCase();
+                        const cardOshiAttr = card.getAttribute('data-oshi') || '';
+                        const cardOshiList = cardOshiAttr.split(',').map(s => s.trim());
+                        const cardActivity = card.getAttribute('data-activity') || '';
+
+                        const matchesSearch = !searchText || contentText.includes(searchText);
+                        const matchesOshi = !selectedOshi || cardOshiList.includes(selectedOshi);
+                        const matchesActivity = !selectedActivity || cardActivity === selectedActivity;
+
+                        if (matchesSearch && matchesOshi && matchesActivity) {
+                            card.style.display = 'flex';
+                            visibleCount++;
+                        } else {
+                            card.style.display = 'none';
+                        }
+                    });
+
+                    if (noResultsMsg) {
+                        noResultsMsg.style.display = visibleCount === 0 ? 'block' : 'none';
+                    }
+                }
+
+                searchInput.addEventListener('input', filterCards);
+                oshiSelect.addEventListener('change', filterCards);
+                activitySelect.addEventListener('change', filterCards);
+
+                resetButton.addEventListener('click', function() {
+                    searchInput.value = '';
+                    oshiSelect.value = '';
+                    activitySelect.value = '';
+                    filterCards();
+                });
+            }
+        });
+
+        // 📸 html2canvas キャプチャ・保存・共有機能
+        function generateCanvas(modalId) {
+            const modal = document.getElementById(modalId);
+            const captureElement = modal.querySelector('.shareCaptureArea');
+            const isMobile = window.innerWidth <= 768;
+            
+            return html2canvas(captureElement, {
+                scale: isMobile ? 1.5 : 2,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                onclone: (clonedDoc) => {
+                    const clonedArea = clonedDoc.getElementById(modalId).querySelector('.shareCaptureArea');
+                    if (clonedArea) {
+                        clonedArea.style.width = '100%';
+                        clonedArea.style.maxWidth = '400px';
+                    }
+                }
+            });
+        }
+
+        function downloadImage(modalId) {
+            const modal = document.getElementById(modalId);
+            const dateTextEl = modal.querySelector('.modal-date-text');
+            const dateText = dateTextEl ? dateTextEl.textContent.replace('📅 ', '').trim() : 'memory';
+            
+            generateCanvas(modalId).then(canvas => {
+                const dataUrl = canvas.toDataURL('image/png');
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                
+                if (isIOS) {
+                    const newWindow = window.open();
+                    if (newWindow) {
+                        newWindow.document.write(`
+                            <html>
+                                <head><title>画像の保存</title><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+                                <body style="margin:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#111; color:#fff; min-height:100vh; font-family:sans-serif;">
+                                    <p style="margin:15px; font-size:14px; text-align:center;">画像を長押しして「写真に追加」または「保存」を選択してください</p>
+                                    <img src="${dataUrl}" style="max-width:90%; height:auto; border-radius:8px; box-shadow:0 4px 12px rgba(255,255,255,0.2);" />
+                                </body>
+                            </html>
+                        `);
+                    } else {
+                        alert('ポップアップがブロックされました。ブラウザの設定をご確認ください。');
+                    }
+                } else {
+                    const link = document.createElement('a');
+                    link.download = `oshikatsu_${dateText}.png`;
+                    link.href = dataUrl;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            }).catch(err => {
+                console.error('画像生成エラー:', err);
+                alert('画像の生成に失敗しました。');
+            });
+        }
+
+        function shareImage(modalId) {
+            const modal = document.getElementById(modalId);
+            const dateTextEl = modal.querySelector('.modal-date-text');
+            const dateText = dateTextEl ? dateTextEl.textContent.replace('📅 ', '').trim() : 'memory';
+
+            generateCanvas(modalId).then(canvas => {
+                canvas.toBlob(blob => {
+                    if (!blob) {
+                        alert('画像の生成に失敗しました。');
+                        return;
+                    }
+
+                    const file = new File([blob], `oshikatsu_${dateText}.png`, { type: 'image/png' });
+
+                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                        navigator.share({
+                            files: [file]
+                        }).catch(err => {
+                            if (err.name !== 'AbortError') {
+                                console.error('共有エラー:', err);
+                                alert('画像の直接共有に失敗しました。「画像を保存」をしてから送信してください。');
+                            }
+                        });
+                    } else {
+                        alert('お使いのブラウザは画像の直接共有に対応していません。「画像を保存」ボタンをご利用ください。');
+                    }
+                }, 'image/png');
+            }).catch(err => {
+                console.error('生成エラー:', err);
+                alert('画像の生成に失敗しました。');
+            });
+        }
+    </script>
+</body>
+</html>
