@@ -2,3 +2,4 @@ Flask
 Flask-SQLAlchemy
 Pillow
 gunicorn
+requests
