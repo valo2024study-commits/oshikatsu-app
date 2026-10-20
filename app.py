@@ -88,10 +88,6 @@ def login_required(f):
 
 # ★ 画像ファイルから Exif GPS 情報を抽出する関数
 def extract_gps_from_image(image_file):
-    """
-    アップロードされた画像ファイルからExifのGPS情報を解析し、
-    (latitude, longitude) の float タプルを返す。取得できない場合は (None, None)。
-    """
     try:
         image = Image.open(image_file)
         exif_data = image._getexif()
@@ -110,7 +106,6 @@ def extract_gps_from_image(image_file):
         if not gps_info or 'GPSLatitude' not in gps_info or 'GPSLongitude' not in gps_info:
             return None, None
 
-        # 度・分・秒 (DMS) を 10進数 (Decimal Degrees) に変換するサブ関数
         def convert_to_degrees(value):
             d = float(value[0])
             m = float(value[1])
@@ -199,11 +194,14 @@ def list_memos():
     )
 
 
-# カレンダー画面
+# ★ カレンダー & 年表（タイムライン）切替画面
 @app.route('/calendar')
 @login_required
 def calendar_page():
-    return render_template('calendar.html')
+    # 年表用に日付の古い順 (asc) で推し活メモを取得
+    timeline_memos = Memo.query.filter_by(user_id=session['user_id'])\
+                               .order_by(Memo.oshikatsu_date.asc()).all()
+    return render_template('calendar.html', timeline_memos=timeline_memos)
 
 
 # マップ画面
@@ -240,6 +238,27 @@ def api_memos():
         })
         
     return jsonify(events)
+
+
+# ★ 年表（タイムライン）用 API
+@app.route('/api/timeline')
+@login_required
+def api_timeline():
+    memos = Memo.query.filter_by(user_id=session['user_id'])\
+                       .order_by(Memo.oshikatsu_date.asc()).all()
+    timeline_data = []
+    for memo in memos:
+        timeline_data.append({
+            'id': memo.id,
+            'date': memo.oshikatsu_date,
+            'activity_type': memo.activity_type or '推し活',
+            'oshi_names': memo.oshi_names,
+            'content': memo.content,
+            'color': memo.color or '#4b7bec',
+            'image_files': memo.image_files,
+            'location_name': memo.location_name
+        })
+    return jsonify(timeline_data)
 
 
 # マップ用 API (位置情報付きメモのみ取得)
@@ -303,10 +322,9 @@ def add_page():
 
         for file in uploaded_files:
             if file and allowed_file(file.filename):
-                # 最初にExif位置情報付きの画像が見つかったらその座標を取得
                 if exif_lat is None and exif_lng is None:
                     exif_lat, exif_lng = extract_gps_from_image(file)
-                    file.seek(0)  # ファイルポインタを先頭に復元して保存へ回す
+                    file.seek(0)
 
                 filename = secure_filename(file.filename)
                 timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')
@@ -314,7 +332,6 @@ def add_page():
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
                 saved_filenames.append(unique_filename)
 
-        # 座標の優先決定: 画像Exif ＞ 手入力(ピン指定) ＞ 場所名ジオコーディング
         if exif_lat is not None and exif_lng is not None:
             lat, lng = exif_lat, exif_lng
         elif location_name and (lat is None or lng is None):
@@ -358,7 +375,6 @@ def edit_memo(memo_id):
         memo.content = request.form.get('content')
         memo.color = request.form.get('color', '#4b7bec')
 
-        # 位置情報の更新
         location_name = request.form.get('location_name')
         lat_raw = request.form.get('lat')
         lng_raw = request.form.get('lng')
@@ -366,7 +382,6 @@ def edit_memo(memo_id):
         lat = float(lat_raw) if lat_raw else None
         lng = float(lng_raw) if lng_raw else None
 
-        # 既存画像の削除処理
         delete_images = request.form.getlist('delete_images')
         current_images = memo.image_files
         for img_to_delete in delete_images:
@@ -376,7 +391,6 @@ def edit_memo(memo_id):
                 if os.path.exists(filepath):
                     os.remove(filepath)
 
-        # 新規画像の追加アップロード ＆ Exif GPS情報抽出
         uploaded_files = request.files.getlist('image_files')
         exif_lat, exif_lng = None, None
 
@@ -392,7 +406,6 @@ def edit_memo(memo_id):
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
                 current_images.append(unique_filename)
 
-        # 座標の優先決定: 新規画像のExif ＞ 手入力(ピン指定) ＞ 場所名ジオコーディング
         if exif_lat is not None and exif_lng is not None:
             lat, lng = exif_lat, exif_lng
         elif location_name and (lat is None or lng is None or location_name != memo.location_name):

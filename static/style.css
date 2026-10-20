@@ -171,6 +171,218 @@ body {
 }
 
 /* ==========================================
+   🔀 カレンダー / 年表 切り替えタブ
+   ========================================== */
+.view-switch-container {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin: 15px auto 5px;
+    max-width: 900px;
+}
+
+.switch-btn {
+    background-color: #f1f2f6;
+    color: #57606f;
+    border: 2px solid transparent;
+    padding: 8px 20px;
+    border-radius: 25px;
+    font-size: 0.95rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.switch-btn:hover {
+    background-color: #e4e7eb;
+}
+
+.switch-btn.active {
+    background-color: #ff4757;
+    color: white;
+    box-shadow: 0 4px 10px rgba(255, 71, 87, 0.3);
+}
+
+/* ==========================================
+   📅 カレンダー基本・カスタマイズスタイル
+   ========================================== */
+.calendar-container {
+    max-width: 900px;
+    margin: 15px auto;
+    padding: 15px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.fc-toolbar-title {
+    white-space: nowrap !important;
+    font-size: 1.25rem !important;
+    font-weight: bold;
+    color: #2f3542;
+}
+
+.fc-toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.fc-col-header-cell-cushion,
+.fc-daygrid-day-number,
+.fc-event-main {
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+}
+
+.fc-event {
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    cursor: pointer;
+    padding: 2px 4px;
+}
+
+.oshi-heart-event {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.oshi-heart-event:hover {
+    transform: scale(1.25);
+    opacity: 0.85;
+}
+
+.oshi-heart-icon {
+    font-size: 1.4rem;
+    line-height: 1;
+    display: inline-block;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+}
+
+/* ==========================================
+   📜 年表（タイムライン）表示スタイル
+   ========================================== */
+.timeline-container {
+    max-width: 900px;
+    margin: 15px auto;
+    padding: 25px 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.timeline-wrapper {
+    position: relative;
+    padding-left: 28px;
+    margin-top: 10px;
+}
+
+.timeline-wrapper::before {
+    content: '';
+    position: absolute;
+    top: 5px;
+    bottom: 5px;
+    left: 8px;
+    width: 3px;
+    background: linear-gradient(180deg, #ff4757 0%, #70a1ff 100%);
+    border-radius: 2px;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 24px;
+}
+
+.timeline-item:last-child {
+    margin-bottom: 0;
+}
+
+.timeline-dot {
+    position: absolute;
+    left: -28px;
+    top: 4px;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+    background-color: #ff4757;
+    z-index: 1;
+}
+
+.timeline-card {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 14px 18px;
+    border-left: 4px solid #ff4757;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    transition: transform 0.15s ease;
+}
+
+.timeline-card:hover {
+    transform: translateY(-2px);
+}
+
+.timeline-date {
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: #747d8c;
+    margin-bottom: 6px;
+}
+
+.timeline-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.timeline-title {
+    font-size: 1.05rem;
+    font-weight: bold;
+    color: #2f3542;
+}
+
+.timeline-location {
+    font-size: 0.8rem;
+    color: #747d8c;
+}
+
+.timeline-content {
+    font-size: 0.95rem;
+    color: #2f3542;
+    white-space: pre-wrap;
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+
+.timeline-photos {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+
+.timeline-photos img {
+    width: 70px;
+    height: 70px;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.timeline-empty {
+    text-align: center;
+    padding: 40px 10px;
+    color: #a4b0be;
+    font-size: 0.95rem;
+}
+
+/* ==========================================
    🔍 フィルターコントロールエリア
    ========================================== */
 .filter-section {
@@ -424,6 +636,35 @@ body {
     z-index: 10;
 }
 
+.share-capture-area {
+    padding: 10px;
+    background-color: #ffffff;
+    border-radius: 12px;
+}
+
+.modal-header-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+    align-items: center;
+}
+
+.modal-date-badge {
+    background-color: #f1f2f6;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: #57606f;
+}
+
+.modal-oshi-container {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
 .modal-body-text {
     font-size: 0.95em;
     line-height: 1.6;
@@ -566,5 +807,42 @@ body {
 
     .filter-reset-btn {
         align-self: stretch;
+    }
+
+    .calendar-container {
+        padding: 6px;
+        margin: 10px auto;
+    }
+
+    .fc-toolbar-title {
+        font-size: 1.05rem !important;
+    }
+
+    .fc-daygrid-day-number {
+        font-size: 0.8rem !important;
+        padding: 2px 4px !important;
+    }
+
+    .fc-col-header-cell-cushion {
+        font-size: 0.8rem !important;
+        padding: 2px 0 !important;
+    }
+
+    .fc-daygrid-day-frame {
+        min-height: 48px !important;
+    }
+
+    .timeline-container {
+        padding: 15px 12px;
+    }
+
+    .timeline-wrapper {
+        padding-left: 22px;
+    }
+
+    .timeline-dot {
+        left: -22px;
+        width: 13px;
+        height: 13px;
     }
 }

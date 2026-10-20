@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>推し活カレンダー</title>
+    <title>推し活カレンダー & 年表</title>
     <!-- 共通CSSファイルの読み込み -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     
@@ -14,10 +14,41 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
     <style>
+        /* 🔀 表示切り替え用タブスイッチ */
+        .view-switch-container {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin: 15px auto 5px;
+            max-width: 900px;
+        }
+
+        .switch-btn {
+            background-color: #f1f2f6;
+            color: #57606f;
+            border: 2px solid transparent;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .switch-btn:hover {
+            background-color: #e4e7eb;
+        }
+
+        .switch-btn.active {
+            background-color: #ff4757;
+            color: white;
+            box-shadow: 0 4px 10px rgba(255, 71, 87, 0.3);
+        }
+
         /* 📅 カレンダー用コンテナ */
         .calendar-container {
             max-width: 900px;
-            margin: 20px auto;
+            margin: 15px auto;
             padding: 15px;
             background: white;
             border-radius: 12px;
@@ -37,10 +68,9 @@
             gap: 8px;
         }
 
-        /* 📅 カレンダー内の曜日・日付の数字・イベントの改行防止 */
-        .fc-col-header-cell-cushion, /* 曜日 */
-        .fc-daygrid-day-number,     /* 日付の数字 (1日, 2日...) */
-        .fc-event-main {            /* イベントエリア */
+        .fc-col-header-cell-cushion,
+        .fc-daygrid-day-number,
+        .fc-event-main {
             white-space: nowrap !important;
             word-break: keep-all !important;
         }
@@ -66,7 +96,6 @@
             opacity: 0.85;
         }
 
-        /* カレンダー上のハートマーク（♥）のサイズ調整 */
         .oshi-heart-icon {
             font-size: 1.4rem;
             line-height: 1;
@@ -74,7 +103,123 @@
             filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
         }
 
-        /* 📱 カレンダー特有のスマホ調整 */
+        /* 📜 年表（タイムライン）デザイン */
+        .timeline-container {
+            max-width: 900px;
+            margin: 15px auto;
+            padding: 25px 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            display: none; /* 初期状態は非表示 */
+        }
+
+        .timeline-wrapper {
+            position: relative;
+            padding-left: 28px;
+            margin-top: 10px;
+        }
+
+        /* 縦のライン */
+        .timeline-wrapper::before {
+            content: '';
+            position: absolute;
+            top: 5px;
+            bottom: 5px;
+            left: 8px;
+            width: 3px;
+            background: linear-gradient(180deg, #ff4757 0%, #70a1ff 100%);
+            border-radius: 2px;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 24px;
+        }
+
+        .timeline-item:last-child {
+            margin-bottom: 0;
+        }
+
+        /* タイムライン上のドット */
+        .timeline-dot {
+            position: absolute;
+            left: -28px;
+            top: 4px;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+            background-color: #ff4757;
+            z-index: 1;
+        }
+
+        .timeline-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 14px 18px;
+            border-left: 4px solid #ff4757;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            transition: transform 0.15s ease;
+        }
+
+        .timeline-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .timeline-date {
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: #747d8c;
+            margin-bottom: 6px;
+        }
+
+        .timeline-header {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .timeline-title {
+            font-size: 1.05rem;
+            font-weight: bold;
+            color: #2f3542;
+        }
+
+        .timeline-content {
+            font-size: 0.95rem;
+            color: #2f3542;
+            white-space: pre-wrap;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .timeline-photos {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+
+        .timeline-photos img {
+            width: 70px;
+            height: 70px;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .timeline-empty {
+            text-align: center;
+            padding: 40px 10px;
+            color: #a4b0be;
+            font-size: 0.95rem;
+        }
+
+        /* 📱 スマホ対応レスポンシブ */
         @media (max-width: 600px) {
             .calendar-container {
                 padding: 6px;
@@ -98,14 +243,28 @@
             .fc-daygrid-day-frame {
                 min-height: 48px !important;
             }
+
+            .timeline-container {
+                padding: 15px 12px;
+            }
+
+            .timeline-wrapper {
+                padding-left: 22px;
+            }
+
+            .timeline-dot {
+                left: -22px;
+                width: 13px;
+                height: 13px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- ヘッダーエリア（共通クラスを適用） -->
+        <!-- ヘッダーエリア -->
         <div class="header-nav">
-            <h1>📅 推し活カレンダー</h1>
+            <h1 id="pageTitle">📅 推し活カレンダー</h1>
             <div class="btn-group">
                 <a href="{{ url_for('map_page') }}" class="nav-btn btn-map">🗺️ マップ</a>
                 <a href="{{ url_for('add_page') }}" class="create-btn btn-add">✨ 新しい思い出</a>
@@ -113,8 +272,54 @@
             </div>
         </div>
 
-        <div class="calendar-container">
+        <!-- 🔀 表示切り替えトグルボタン -->
+        <div class="view-switch-container">
+            <button class="switch-btn active" id="btnViewCalendar" onclick="switchView('calendar')">📅 カレンダー</button>
+            <button class="switch-btn" id="btnViewTimeline" onclick="switchView('timeline')">📜 年表（タイムライン）</button>
+        </div>
+
+        <!-- 📅 カレンダーコンテナ -->
+        <div class="calendar-container" id="calendarView">
             <div id="calendar"></div>
+        </div>
+
+        <!-- 📜 年表（タイムライン）コンテナ -->
+        <div class="timeline-container" id="timelineView">
+            {% if timeline_memos and timeline_memos|length > 0 %}
+                <div class="timeline-wrapper">
+                    {% for memo in timeline_memos %}
+                    <div class="timeline-item">
+                        <div class="timeline-dot" style="background-color: {{ memo.color or '#ff4757' }};"></div>
+                        <div class="timeline-card" style="border-left-color: {{ memo.color or '#ff4757' }};">
+                            <div class="timeline-date">📅 {{ memo.oshikatsu_date }}</div>
+                            <div class="timeline-header">
+                                <span class="timeline-title">{{ memo.activity_type or '推し活' }}</span>
+                                {% for name in memo.oshi_names %}
+                                    <span class="oshi-tag" style="background-color: {{ memo.color or '#ff4757' }};">♥ {{ name }}</span>
+                                {% endfor %}
+                                {% if memo.location_name %}
+                                    <span style="font-size: 0.8rem; color: #747d8c;">📍 {{ memo.location_name }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="timeline-content">{{ memo.content }}</div>
+                            
+                            {% if memo.image_files and memo.image_files|length > 0 %}
+                            <div class="timeline-photos">
+                                {% for img in memo.image_files %}
+                                    <img src="{{ url_for('static', filename='uploads/' + img) }}" alt="思い出写真">
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="timeline-empty">
+                    <p>🌸 まだ推し活の記録がありません。</p>
+                    <p>「✨ 新しい思い出」ボタンから記録を追加してみましょう！</p>
+                </div>
+            {% endif %}
         </div>
     </div>
 
@@ -148,11 +353,13 @@
     </div>
 
     <script>
+        let calendarObj = null;
+
         document.addEventListener('DOMContentLoaded', function() {
             const calendarEl = document.getElementById('calendar');
             const isMobile = window.innerWidth <= 600;
 
-            const calendar = new FullCalendar.Calendar(calendarEl, {
+            calendarObj = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth',
                 locale: 'ja',
                 height: 'auto',
@@ -166,10 +373,8 @@
                     today: '今日'
                 },
                 
-                // FlaskのAPIからイベントを取得
                 events: '/api/memos',
                 
-                // カレンダー内の各イベント表示カスタマイズ（♥マークのみを大きめで表示）
                 eventContent: function(arg) {
                     const props = arg.event.extendedProps || {};
                     const eventColor = arg.event.backgroundColor || props.color || arg.event.borderColor || '#ff4757';
@@ -199,7 +404,6 @@
                     return { domNodes: [container] };
                 },
 
-                // カレンダーのイベントクリック時
                 eventClick: function(info) {
                     info.jsEvent.preventDefault();
                     
@@ -208,11 +412,9 @@
 
                     document.getElementById('modalCard').style.borderTopColor = eventColor;
 
-                    // 1. 日付
                     const dateStr = info.event.startStr || props.date || '';
                     document.getElementById('modalDate').textContent = `📅 ${dateStr}`;
 
-                    // 2. 活動内容
                     const activityBadge = document.getElementById('modalActivity');
                     if (props.activity_type) {
                         activityBadge.textContent = props.activity_type;
@@ -221,7 +423,6 @@
                         activityBadge.style.display = 'none';
                     }
 
-                    // 3. 推しの名前バッジ
                     const oshiContainer = document.getElementById('modalOshiContainer');
                     oshiContainer.innerHTML = '';
 
@@ -254,10 +455,8 @@
                         oshiContainer.appendChild(badge);
                     }
 
-                    // 4. 本文テキスト
                     document.getElementById('modalContent').textContent = props.content || info.event.title || '（内容なし）';
 
-                    // 5. 画像表示処理
                     const galleryContainer = document.getElementById('modalGallery');
                     galleryContainer.innerHTML = '';
 
@@ -276,7 +475,6 @@
                         });
                     }
 
-                    // 6. 編集・削除アクションのURL指定
                     const memoId = info.event.id;
                     document.getElementById('modalEditBtn').href = `/edit/${memoId}`;
                     document.getElementById('modalDeleteForm').action = `/delete/${memoId}`;
@@ -285,8 +483,36 @@
                 }
             });
             
-            calendar.render();
+            calendarObj.render();
         });
+
+        // 🔀 カレンダー/年表 表示切り替え関数
+        function switchView(viewType) {
+            const calendarView = document.getElementById('calendarView');
+            const timelineView = document.getElementById('timelineView');
+            const btnCalendar = document.getElementById('btnViewCalendar');
+            const btnTimeline = document.getElementById('btnViewTimeline');
+            const pageTitle = document.getElementById('pageTitle');
+
+            if (viewType === 'calendar') {
+                calendarView.style.display = 'block';
+                timelineView.style.display = 'none';
+                btnCalendar.classList.add('active');
+                btnTimeline.classList.remove('active');
+                pageTitle.textContent = '📅 推し活カレンダー';
+                
+                // 非表示から復帰時にカレンダーサイズを再調整
+                if (calendarObj) {
+                    setTimeout(() => { calendarObj.updateSize(); }, 50);
+                }
+            } else {
+                calendarView.style.display = 'none';
+                timelineView.style.display = 'block';
+                btnCalendar.classList.remove('active');
+                btnTimeline.classList.add('active');
+                pageTitle.textContent = '📜 推し活年表（タイムライン）';
+            }
+        }
 
         function hideModal() {
             document.getElementById('memoModal').classList.remove('is-active');
@@ -298,7 +524,6 @@
             }
         }
 
-        // キャプチャ処理ヘルパー関数
         function generateCanvas() {
             const captureElement = document.getElementById('shareCaptureArea');
             const isMobile = window.innerWidth <= 768;
@@ -317,7 +542,6 @@
             });
         }
 
-        // 1. 画像保存機能
         function downloadImage() {
             const dateText = document.getElementById('modalDate').textContent.replace('📅 ', '');
             
@@ -354,7 +578,6 @@
             });
         }
 
-        // 2. SNS共有機能
         function shareImage() {
             const dateText = document.getElementById('modalDate').textContent.replace('📅 ', '');
 
