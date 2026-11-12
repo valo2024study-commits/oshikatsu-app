@@ -11,6 +11,10 @@ from sqlalchemy import text
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
+# Cloudinary用ライブラリ
+import cloudinary
+import cloudinary.uploader
+
 # Exif解析用ライブラリ (Pillow)
 from PIL import Image
 from PIL.ExifTags import TAGS, GPSTAGS
@@ -27,11 +31,25 @@ if database_url and database_url.startswith("postgres://"):
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url or ('sqlite:///' + os.path.join(BASE_DIR, 'oshikatsu.db'))
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# 画像アップロード設定
+# Cloudinary設定 (環境変数が設定されている場合のみ有効化)
+USE_CLOUDINARY = all([
+    os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    os.environ.get('CLOUDINARY_API_KEY'),
+    os.environ.get('CLOUDINARY_API_SECRET')
+])
+
+if USE_CLOUDINARY:
+    cloudinary.config(
+        cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
+        api_key=os.environ.get('CLOUDINARY_API_KEY'),
+        api_secret=os.environ.get('CLOUDINARY_API_SECRET'),
+        secure=True
+    )
+
+# ローカル保存用フォルダ設定 (ローカル開発時のフォールバック用)
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'uploads')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 db = SQLAlchemy(app)
@@ -53,14 +71,14 @@ class Memo(db.Model):
     oshi_names_str = db.Column(db.String(200), nullable=True)  # カンマ区切りの推し名
     content = db.Column(db.Text, nullable=False)
     color = db.Column(db.String(20), default='#4b7bec')
-    image_files_str = db.Column(db.Text, nullable=True)        # カンマ区切りの画像ファイル名
+    image_files_str = db.Column(db.Text, nullable=True)        # カンマ区切りの画像URLまたはファイル名
     
     # 位置情報用カラム
     location_name = db.Column(db.String(100), nullable=True)   # 場所名
     lat = db.Column(db.Float, nullable=True)                    # 緯度
     lng = db.Column(db.Float, nullable=True)                    # 経度
 
-    # ★ ユーザー間共有用公開フラグ (True: みんなに公開, False: 自分のみ)
+    # ユーザー間共有用公開フラグ (True: みんなに公開, False: 自分のみ)
     is_public = db.Column(db.Boolean, default=False, nullable=False)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -84,6 +102,56 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+def get_image_url(img_value):
+    """CloudinaryのURL(http〜)ならそのまま返し、ローカルファイル名なら/static/uploads/を付与"""
+    if not img_value:
+        return None
+    if img_value.startswith('http://') or img_value.startswith('https://'):
+        return img_value
+    return f"/static/uploads/{img_value}"
+
+
+def save_uploaded_image(file):
+    """画像をCloudinary(本番)またはローカルフォルダ(開発)に保存し、URLまたはファイル名を返す"""
+    if USE_CLOUDINARY:
+        upload_result = cloudinary.uploader.upload(
+            file,
+            folder="otalog_uploads",
+            resource_type="image"
+        )
+        return upload_result.get('secure_url')
+    else:
+        filename = secure_filename(file.filename)
+        timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')
+        unique_filename = f"{timestamp}_{filename}"
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
+        return unique_filename
+
+
+def delete_stored_image(img_value):
+    """保存された画像をCloudinaryまたはローカルから削除する"""
+    if not img_value:
+        return
+    if img_value.startswith('http://') or img_value.startswith('https://'):
+        if USE_CLOUDINARY:
+            try:
+                # URLからpublic_idを抽出して削除 (例: otalog_uploads/xxxx)
+                parts = img_value.split('/upload/')
+                if len(parts) == 2:
+                    path_part = parts[1]
+                    # バージョン番号 (v1234567/) を除去
+                    if path_part.startswith('v') and '/' in path_part:
+                        path_part = path_part.split('/', 1)[1]
+                    public_id = path_part.rsplit('.', 1)[0]
+                    cloudinary.uploader.destroy(public_id)
+            except Exception as e:
+                print(f"Cloudinary画像削除エラー: {e}")
+    else:
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], img_value)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -94,7 +162,7 @@ def login_required(f):
     return decorated_function
 
 
-# ★ 画像ファイルから Exif GPS 情報を抽出する関数
+# 画像ファイルから Exif GPS 情報を抽出する関数
 def extract_gps_from_image(image_file):
     try:
         image = Image.open(image_file)
@@ -135,7 +203,7 @@ def extract_gps_from_image(image_file):
         return None, None
 
 
-# ★ 場所名から自動で緯度・経度を取得する関数 (Nominatim API)
+# 場所名から自動で緯度・経度を取得する関数 (Nominatim API)
 def geocode_location(location_name):
     if not location_name or not location_name.strip():
         return None, None
@@ -158,13 +226,11 @@ def geocode_location(location_name):
 
 # --- ルーティング ---
 
-# トップページ
 @app.route('/')
 def welcome():
     return render_template('welcome.html')
 
 
-# 一覧画面（自分の記録：推し名・種類での絞り込み機能付き）
 @app.route('/list')
 @login_required
 def list_memos():
@@ -202,14 +268,12 @@ def list_memos():
     )
 
 
-# ★ ユーザー間共有タイムライン画面（みんなの推し活タイムライン）
 @app.route('/shared_timeline')
 @login_required
 def shared_timeline():
     selected_oshi = request.args.get('oshi', '').strip()
     selected_type = request.args.get('type', '').strip()
 
-    # 公開設定 (is_public == True) になっている全ユーザーの投稿を取得
     query = Memo.query.filter_by(is_public=True)
 
     if selected_type:
@@ -218,10 +282,8 @@ def shared_timeline():
     if selected_oshi:
         query = query.filter(Memo.oshi_names_str.like(f"%{selected_oshi}%"))
 
-    # 新しい投稿が上に来るように日付・作成日時の降順で取得
     shared_memos = query.order_by(Memo.oshikatsu_date.desc(), Memo.created_at.desc()).all()
 
-    # 絞り込み用の選択肢リスト（公開投稿全体から集計）
     all_public_memos = Memo.query.filter_by(is_public=True).all()
     all_oshi_set = set()
     for memo in all_public_memos:
@@ -242,24 +304,20 @@ def shared_timeline():
     )
 
 
-# ★ カレンダー & 個人年表（タイムライン）切替画面
 @app.route('/calendar')
 @login_required
 def calendar_page():
-    # 年表用に日付の古い順 (asc) で推し活メモを取得
     timeline_memos = Memo.query.filter_by(user_id=session['user_id'])\
                                .order_by(Memo.oshikatsu_date.asc()).all()
     return render_template('calendar.html', timeline_memos=timeline_memos)
 
 
-# マップ画面
 @app.route('/map')
 @login_required
 def map_page():
     return render_template('map.html')
 
 
-# FullCalendar 用 API
 @app.route('/api/memos')
 @login_required
 def api_memos():
@@ -289,7 +347,6 @@ def api_memos():
     return jsonify(events)
 
 
-# ★ 個人年表（タイムライン）用 API
 @app.route('/api/timeline')
 @login_required
 def api_timeline():
@@ -311,7 +368,6 @@ def api_timeline():
     return jsonify(timeline_data)
 
 
-# ★ ユーザー間共有タイムライン用 API（非同期更新やJS連携用）
 @app.route('/api/shared_timeline')
 @login_required
 def api_shared_timeline():
@@ -334,7 +390,6 @@ def api_shared_timeline():
     return jsonify(shared_data)
 
 
-# マップ用 API (位置情報付きメモのみ取得)
 @app.route('/api/memos/locations')
 @login_required
 def api_memo_locations():
@@ -346,9 +401,7 @@ def api_memo_locations():
 
     locations = []
     for memo in memos:
-        first_image_path = None
-        if memo.image_files:
-            first_image_path = f"/static/uploads/{memo.image_files[0]}"
+        first_image_path = get_image_url(memo.image_files[0]) if memo.image_files else None
 
         locations.append({
             'id': memo.id,
@@ -379,11 +432,8 @@ def add_page():
         
         content = request.form.get('content')
         color = request.form.get('color', '#4b7bec')
-
-        # 公開設定フラグの取得（チェックボックスがONならTrue）
         is_public = (request.form.get('is_public') == '1' or request.form.get('is_public') == 'on')
 
-        # 位置情報の取得
         location_name = request.form.get('location_name')
         lat_raw = request.form.get('lat')
         lng_raw = request.form.get('lng')
@@ -402,11 +452,9 @@ def add_page():
                     exif_lat, exif_lng = extract_gps_from_image(file)
                     file.seek(0)
 
-                filename = secure_filename(file.filename)
-                timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')
-                unique_filename = f"{timestamp}_{filename}"
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
-                saved_filenames.append(unique_filename)
+                saved_path_or_url = save_uploaded_image(file)
+                if saved_path_or_url:
+                    saved_filenames.append(saved_path_or_url)
 
         if exif_lat is not None and exif_lng is not None:
             lat, lng = exif_lat, exif_lng
@@ -451,8 +499,6 @@ def edit_memo(memo_id):
 
         memo.content = request.form.get('content')
         memo.color = request.form.get('color', '#4b7bec')
-
-        # 公開設定フラグの更新
         memo.is_public = (request.form.get('is_public') == '1' or request.form.get('is_public') == 'on')
 
         location_name = request.form.get('location_name')
@@ -467,9 +513,7 @@ def edit_memo(memo_id):
         for img_to_delete in delete_images:
             if img_to_delete in current_images:
                 current_images.remove(img_to_delete)
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], img_to_delete)
-                if os.path.exists(filepath):
-                    os.remove(filepath)
+                delete_stored_image(img_to_delete)
 
         uploaded_files = request.files.getlist('image_files')
         exif_lat, exif_lng = None, None
@@ -480,11 +524,9 @@ def edit_memo(memo_id):
                     exif_lat, exif_lng = extract_gps_from_image(file)
                     file.seek(0)
 
-                filename = secure_filename(file.filename)
-                timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')
-                unique_filename = f"{timestamp}_{filename}"
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
-                current_images.append(unique_filename)
+                saved_path_or_url = save_uploaded_image(file)
+                if saved_path_or_url:
+                    current_images.append(saved_path_or_url)
 
         if exif_lat is not None and exif_lng is not None:
             lat, lng = exif_lat, exif_lng
@@ -511,9 +553,7 @@ def delete_memo(memo_id):
     memo = Memo.query.filter_by(id=memo_id, user_id=session['user_id']).first_or_404()
 
     for img in memo.image_files:
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], img)
-        if os.path.exists(filepath):
-            os.remove(filepath)
+        delete_stored_image(img)
 
     db.session.delete(memo)
     db.session.commit()
@@ -571,7 +611,6 @@ def logout():
 # アプリ起動時にテーブルを作成＆既存DBのカラム自動追加
 with app.app_context():
     db.create_all()
-    # 既存の memo テーブルに is_public カラムがない場合は自動追加する
     try:
         db.session.execute(text("ALTER TABLE memo ADD COLUMN is_public BOOLEAN NOT NULL DEFAULT FALSE"))
         db.session.commit()

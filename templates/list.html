@@ -98,7 +98,7 @@
         {% if memo.image_files %}
         <div class="memo-photos-preview js-prevent-click" style="pointer-events: auto;">
             {% for img in memo.image_files %}
-            <img src="{{ url_for('static', filename='uploads/' + img) }}" alt="推し活写真">
+            <img src="{{ img if img.startswith('http') else url_for('static', filename='uploads/' + img) }}" alt="推し活写真">
             {% endfor %}
         </div>
         {% endif %}
@@ -157,7 +157,7 @@
                 <div class="modal-photo-list">
                     {% for img in memo.image_files %}
                     <div class="modal-photo-item">
-                        <img src="{{ url_for('static', filename='uploads/' + img) }}" crossorigin="anonymous"
+                        <img src="{{ img if img.startswith('http') else url_for('static', filename='uploads/' + img) }}" crossorigin="anonymous"
                             alt="推し活写真">
                     </div>
                     {% endfor %}

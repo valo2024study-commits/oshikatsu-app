@@ -84,7 +84,7 @@
         {% if memo.image_files %}
         <div class="feed-images">
             {% for img in memo.image_files %}
-            <img src="{{ url_for('static', filename='uploads/' + img) }}" alt="推し活写真"
+            <img src="{{ img if img.startswith('http') else url_for('static', filename='uploads/' + img) }}" alt="推し活写真"
                 onclick="openImageModal(this.src)">
             {% endfor %}
         </div>

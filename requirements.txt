@@ -5,3 +5,4 @@ Pillow
 requests
 gunicorn
 psycopg[binary]
+cloudinary

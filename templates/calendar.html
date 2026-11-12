@@ -296,7 +296,7 @@
                         {% if memo.image_files and memo.image_files|length > 0 %}
                         <div class="timeline-photos">
                             {% for img in memo.image_files %}
-                                <img src="{{ url_for('static', filename='uploads/' + img) }}" alt="思い出写真">
+                                <img src="{{ img if img.startswith('http') else url_for('static', filename='uploads/' + img) }}" alt="思い出写真">
                             {% endfor %}
                         </div>
                         {% endif %}
@@ -458,7 +458,7 @@
 
                             const img = document.createElement('img');
                             img.crossOrigin = 'anonymous';
-                            img.src = '/static/uploads/' + relativePath;
+                            img.src = relativePath.startsWith('http') ? relativePath : '/static/uploads/' + relativePath;
                             img.alt = '推し活の思い出写真';
 
                             wrapper.appendChild(img);
