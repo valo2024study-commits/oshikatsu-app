@@ -79,6 +79,32 @@
             display: none;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
+
+        /* 🌐 公開設定ボックス用スタイル */
+        .public-setting-box {
+            margin: 18px 0;
+            padding: 14px 16px;
+            background-color: #fff0f3;
+            border: 1px solid #ffccd5;
+            border-radius: 10px;
+        }
+
+        .public-setting-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #ff4757;
+            margin: 0;
+        }
+
+        .public-setting-label input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #ff4757;
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -165,6 +191,17 @@
 
                 <!-- 💡 選択した写真のプレビューと×ボタンが表示される場所 -->
                 <div id="preview-container" style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 15px;"></div>
+            </div>
+
+            <!-- 6. 🌐 ユーザー間共有タイムラインへの公開設定 -->
+            <div class="public-setting-box">
+                <label class="public-setting-label">
+                    <input type="checkbox" name="is_public" value="1">
+                    <span>🌐 みんなのタイムラインに公開する</span>
+                </label>
+                <small style="color: #666; font-size: 0.82em; display: block; margin-top: 6px; padding-left: 28px;">
+                    ※チェックを入れると、他のユーザーも閲覧できるタイムラインにこの投稿が共有されます（あとから編集画面で非公開に戻すことも可能です）。
+                </small>
             </div>
 
             <!-- ボタンエリア（共通ボタンクラスを適用） -->

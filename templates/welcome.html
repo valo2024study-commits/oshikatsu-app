@@ -59,6 +59,7 @@
         .welcome-btn.btn-map-add { background-color: #2ed573; }
         .welcome-btn.btn-calendar { background-color: #ff7675; }
         .welcome-btn.btn-map { background-color: #70a1ff; }
+        .welcome-btn.btn-timeline { background-color: #a55eea; }
 
         .welcome-btn:hover {
             opacity: 0.88;
@@ -92,6 +93,7 @@
                     <!-- ログイン中の表示（共通ボタンカラー適用） -->
                     <a href="{{ url_for('add_page') }}" class="welcome-btn btn-add">✨ 新しく思い出を記録する</a>
                     <a href="{{ url_for('list_memos') }}" class="welcome-btn btn-map-add">📋 これまでの思い出を見る</a>
+                    <a href="{{ url_for('shared_timeline') }}" class="welcome-btn btn-timeline">🌐 みんなのタイムラインを見る</a>
                     <a href="{{ url_for('calendar_page') }}" class="welcome-btn btn-calendar">📅 カレンダーを見る</a>
                     <a href="{{ url_for('map_page') }}" class="welcome-btn btn-map">🗺️ マップを見る</a>
                     <a href="{{ url_for('logout') }}" class="welcome-btn outline" style="margin-top: 6px;">🚪 ログアウト</a>

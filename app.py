@@ -7,6 +7,7 @@ from flask import (
     url_for, flash, session, jsonify
 )
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import text
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
@@ -54,6 +55,9 @@ class Memo(db.Model):
     location_name = db.Column(db.String(100), nullable=True)   # 場所名
     lat = db.Column(db.Float, nullable=True)                    # 緯度
     lng = db.Column(db.Float, nullable=True)                    # 経度
+
+    # ★ ユーザー間共有用公開フラグ (True: みんなに公開, False: 自分のみ)
+    is_public = db.Column(db.Boolean, default=False, nullable=False)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -156,7 +160,7 @@ def welcome():
     return render_template('welcome.html')
 
 
-# 一覧画面（推し名・種類での絞り込み機能を追加）
+# 一覧画面（自分の記録：推し名・種類での絞り込み機能付き）
 @app.route('/list')
 @login_required
 def list_memos():
@@ -194,7 +198,47 @@ def list_memos():
     )
 
 
-# ★ カレンダー & 年表（タイムライン）切替画面
+# ★ ユーザー間共有タイムライン画面（みんなの推し活タイムライン）
+@app.route('/shared_timeline')
+@login_required
+def shared_timeline():
+    selected_oshi = request.args.get('oshi', '').strip()
+    selected_type = request.args.get('type', '').strip()
+
+    # 公開設定 (is_public == True) になっている全ユーザーの投稿を取得
+    query = Memo.query.filter_by(is_public=True)
+
+    if selected_type:
+        query = query.filter(Memo.activity_type == selected_type)
+
+    if selected_oshi:
+        query = query.filter(Memo.oshi_names_str.like(f"%{selected_oshi}%"))
+
+    # 新しい投稿が上に来るように日付・作成日時の降順で取得
+    shared_memos = query.order_by(Memo.oshikatsu_date.desc(), Memo.created_at.desc()).all()
+
+    # 絞り込み用の選択肢リスト（公開投稿全体から集計）
+    all_public_memos = Memo.query.filter_by(is_public=True).all()
+    all_oshi_set = set()
+    for memo in all_public_memos:
+        for name in memo.oshi_names:
+            all_oshi_set.add(name)
+    all_oshi_list = sorted(list(all_oshi_set))
+
+    all_types_set = {m.activity_type for m in all_public_memos if m.activity_type}
+    all_types_list = sorted(list(all_types_set))
+
+    return render_template(
+        'shared_timeline.html',
+        shared_memos=shared_memos,
+        all_oshi_list=all_oshi_list,
+        all_types_list=all_types_list,
+        selected_oshi=selected_oshi,
+        selected_type=selected_type
+    )
+
+
+# ★ カレンダー & 個人年表（タイムライン）切替画面
 @app.route('/calendar')
 @login_required
 def calendar_page():
@@ -233,14 +277,15 @@ def api_memos():
                 'color': memo.color,
                 'location_name': memo.location_name,
                 'lat': memo.lat,
-                'lng': memo.lng
+                'lng': memo.lng,
+                'is_public': memo.is_public
             }
         })
         
     return jsonify(events)
 
 
-# ★ 年表（タイムライン）用 API
+# ★ 個人年表（タイムライン）用 API
 @app.route('/api/timeline')
 @login_required
 def api_timeline():
@@ -256,9 +301,33 @@ def api_timeline():
             'content': memo.content,
             'color': memo.color or '#4b7bec',
             'image_files': memo.image_files,
-            'location_name': memo.location_name
+            'location_name': memo.location_name,
+            'is_public': memo.is_public
         })
     return jsonify(timeline_data)
+
+
+# ★ ユーザー間共有タイムライン用 API（非同期更新やJS連携用）
+@app.route('/api/shared_timeline')
+@login_required
+def api_shared_timeline():
+    memos = Memo.query.filter_by(is_public=True)\
+                       .order_by(Memo.oshikatsu_date.desc(), Memo.created_at.desc()).all()
+    shared_data = []
+    for memo in memos:
+        shared_data.append({
+            'id': memo.id,
+            'username': memo.user.username if memo.user else '匿名ユーザー',
+            'is_mine': (memo.user_id == session['user_id']),
+            'date': memo.oshikatsu_date,
+            'activity_type': memo.activity_type or '推し活',
+            'oshi_names': memo.oshi_names,
+            'content': memo.content,
+            'color': memo.color or '#4b7bec',
+            'image_files': memo.image_files,
+            'location_name': memo.location_name
+        })
+    return jsonify(shared_data)
 
 
 # マップ用 API (位置情報付きメモのみ取得)
@@ -307,6 +376,9 @@ def add_page():
         content = request.form.get('content')
         color = request.form.get('color', '#4b7bec')
 
+        # 公開設定フラグの取得（チェックボックスがONならTrue）
+        is_public = (request.form.get('is_public') == '1' or request.form.get('is_public') == 'on')
+
         # 位置情報の取得
         location_name = request.form.get('location_name')
         lat_raw = request.form.get('lat')
@@ -349,7 +421,8 @@ def add_page():
             image_files_str=','.join(saved_filenames) if saved_filenames else None,
             location_name=location_name,
             lat=lat,
-            lng=lng
+            lng=lng,
+            is_public=is_public
         )
 
         db.session.add(new_memo)
@@ -374,6 +447,9 @@ def edit_memo(memo_id):
 
         memo.content = request.form.get('content')
         memo.color = request.form.get('color', '#4b7bec')
+
+        # 公開設定フラグの更新
+        memo.is_public = (request.form.get('is_public') == '1' or request.form.get('is_public') == 'on')
 
         location_name = request.form.get('location_name')
         lat_raw = request.form.get('lat')
@@ -488,9 +564,15 @@ def logout():
     return redirect(url_for('login'))
 
 
-# アプリ起動時にテーブルを作成
+# アプリ起動時にテーブルを作成＆既存DBのカラム自動追加
 with app.app_context():
     db.create_all()
+    # 既存の memo テーブルに is_public カラムがない場合は自動追加する
+    try:
+        db.session.execute(text("ALTER TABLE memo ADD COLUMN is_public BOOLEAN NOT NULL DEFAULT 0"))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

@@ -16,6 +16,7 @@
         <div class="header-actions">
             <h1>💖 推し活思い出一覧</h1>
             <div class="btn-group">
+                <a href="{{ url_for('shared_timeline') }}" class="nav-btn" style="background-color: #a55eea; color: white; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-weight: bold;">🌐 みんなのタイムライン</a>
                 <a href="{{ url_for('calendar_page') }}" class="calendar-btn">📅 カレンダー</a>
                 <a href="{{ url_for('map_page') }}" class="nav-btn btn-map">🗺️ マップ</a>
                 <a href="{{ url_for('add_page') }}" class="create-btn">＋ 新しく記録する</a>
@@ -75,8 +76,13 @@
                      data-activity="{{ memo.activity_type or '' }}"
                      style="border-left-color: {{ memo.color or '#4b7bec' }};">
                     <div style="width: 100%; pointer-events: none;"> <!-- 子要素の余計なイベント干渉を抑止 -->
-                        <div class="memo-header">
+                        <div class="memo-header" style="display: flex; justify-content: space-between; align-items: center; gap: 6px;">
                             <span class="memo-date">📅 {{ memo.oshikatsu_date }}</span>
+                            {% if memo.is_public %}
+                                <span style="font-size: 0.75em; background-color: #f3e8ff; color: #8e44ad; border: 1px solid #d2b4de; padding: 2px 8px; border-radius: 12px; font-weight: bold;">🌐 公開中</span>
+                            {% else %}
+                                <span style="font-size: 0.75em; background-color: #f1f2f6; color: #747d8c; padding: 2px 8px; border-radius: 12px; font-weight: bold;">🔒 非公開</span>
+                            {% endif %}
                         </div>
 
                         <!-- 推し活の種類 -->
@@ -131,7 +137,12 @@
                         
                         <!-- キャプチャ対象エリア -->
                         <div class="shareCaptureArea" style="padding: 10px; background-color: #ffffff; border-radius: 12px;">
-                            <div style="font-size: 0.9em; color: #747d8c; margin-bottom: 8px; font-weight: bold;" class="modal-date-text">📅 {{ memo.oshikatsu_date }}</div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <div style="font-size: 0.9em; color: #747d8c; font-weight: bold;" class="modal-date-text">📅 {{ memo.oshikatsu_date }}</div>
+                                {% if memo.is_public %}
+                                    <span style="font-size: 0.75em; background-color: #f3e8ff; color: #8e44ad; padding: 2px 8px; border-radius: 12px; font-weight: bold;">🌐 みんなのタイムラインに公開中</span>
+                                {% endif %}
+                            </div>
 
                             <div class="oshi-tags" style="margin-bottom: 15px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
                                 {% if memo.activity_type %}

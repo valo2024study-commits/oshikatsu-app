@@ -160,6 +160,7 @@ body {
 .btn-map { background-color: #70a1ff; }                   /* 青 */
 .btn-add { background-color: #ff4757; }                   /* 赤 */
 .btn-list { background-color: #747d8c; }                  /* グレー */
+.btn-timeline { background-color: #a55eea; }              /* 紫（みんなのタイムライン用） */
 
 .logout-link {
     color: #747d8c;
@@ -263,7 +264,7 @@ body {
 }
 
 /* ==========================================
-   📜 年表（タイムライン）表示スタイル
+   📜 個人年表（タイムライン）表示スタイル
    ========================================== */
 .timeline-container {
     max-width: 900px;
@@ -588,6 +589,289 @@ body {
 .delete-btn { background-color: #ff4757; color: white; }
 
 /* ==========================================
+   🌐 みんなのタイムライン（shared_timeline.html）専用スタイル
+   ========================================== */
+.timeline-header-banner {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    background: white;
+    padding: 18px 20px;
+    border-radius: 14px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+
+/* shared_timeline.html のヘッダー領域 */
+.container > .timeline-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    background: white;
+    padding: 18px 20px;
+    border-radius: 14px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+
+.timeline-title-area h1 {
+    font-size: 1.4rem;
+    color: #ff4757;
+    margin: 0 0 4px 0;
+}
+
+.timeline-title-area p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #747d8c;
+}
+
+.nav-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.filter-card {
+    background: white;
+    padding: 15px 20px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    margin-bottom: 20px;
+}
+
+.filter-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+.filter-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-filter {
+    padding: 9px 16px;
+    border: none;
+    border-radius: 8px;
+    background-color: #ff4757;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: opacity 0.2s;
+}
+
+.btn-filter:hover {
+    opacity: 0.88;
+}
+
+.btn-reset {
+    padding: 9px 14px;
+    border-radius: 8px;
+    background-color: #ced6e0;
+    color: #2f3542 !important;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+}
+
+.feed-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+.feed-card {
+    background: white;
+    border-radius: 14px;
+    padding: 18px 20px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.05);
+    border-left: 6px solid #4b7bec;
+    transition: transform 0.15s;
+}
+
+.feed-card:hover {
+    transform: translateY(-2px);
+}
+
+.feed-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.user-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background-color: #ff4757;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+}
+
+.username-text {
+    font-weight: bold;
+    color: #2f3542;
+    font-size: 0.95rem;
+}
+
+.mine-badge {
+    background-color: #ffeaa7;
+    color: #d63031;
+    font-size: 0.72rem;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: bold;
+}
+
+.post-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    color: #747d8c;
+}
+
+.feed-card .oshi-tag {
+    background-color: #fff0f3;
+    color: #ff4757;
+    border: 1px solid #ffccd5;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    text-shadow: none;
+}
+
+.feed-content {
+    color: #2f3542;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    margin-bottom: 12px;
+}
+
+.feed-location {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.82rem;
+    color: #57606f;
+    background-color: #f1f2f6;
+    padding: 4px 10px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+}
+
+.feed-images {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.feed-images img {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 10px;
+    cursor: pointer;
+    border: 1px solid #f1f2f6;
+    transition: opacity 0.2s;
+}
+
+.feed-images img:hover {
+    opacity: 0.9;
+}
+
+.feed-card-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 1px solid #f1f2f6;
+}
+
+.edit-link {
+    font-size: 0.8rem;
+    color: #747d8c;
+    text-decoration: none;
+}
+
+.edit-link:hover {
+    color: #ff4757;
+    text-decoration: underline;
+}
+
+.empty-state {
+    text-align: center;
+    background: white;
+    padding: 40px 20px;
+    border-radius: 14px;
+    color: #747d8c;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+
+.empty-state p:first-child {
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #2f3542;
+}
+
+.empty-state p:nth-child(2) {
+    font-size: 0.9rem;
+    margin-bottom: 18px;
+}
+
+/* 画像拡大モーダル（shared_timeline.html用） */
+.img-modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.img-modal img {
+    max-width: 95%;
+    max-height: 90%;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+/* ==========================================
    ポップアップ・モーダルスタイル
    ========================================== */
 .modal-overlay {
@@ -844,5 +1128,40 @@ body {
         left: -22px;
         width: 13px;
         height: 13px;
+    }
+
+    /* みんなのタイムライン用レスポンシブ調整 */
+    .container > .timeline-header {
+        padding: 14px 16px;
+    }
+
+    .nav-buttons {
+        width: 100%;
+    }
+
+    .filter-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-actions {
+        width: 100%;
+    }
+
+    .btn-filter, .btn-reset {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .feed-card {
+        padding: 14px 16px;
+    }
+
+    .feed-images {
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    }
+
+    .feed-images img {
+        height: 120px;
     }
 }
