@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}OTALOG｜推し活記録アプリ{% endblock %}</title>
     <!-- 共通CSSファイルの読み込み -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=13">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=14">
 
     <!-- 🎨 ページ描画前に保存済みヘッダーカラーを即時適用（ユーザーごとに分離） -->
     <script>
@@ -39,7 +39,7 @@
     {% block header %}
     <header class="sticky-header">
         <div class="header-inner">
-            <a href="{{ url_for('welcome') }}" class="brand-logo">OTALOG</a>
+            <a href="{{ url_for('welcome') }}" class="brand-logo">💖 OTALOG</a>
 
             {% if 'user_id' in session %}
             <nav class="global-nav">
@@ -58,21 +58,9 @@
                             <span>💖 ヘッダーの推し色</span>
                             <button type="button" class="theme-reset-link" id="themeResetBtn">白に戻す</button>
                         </div>
-                        <div class="theme-swatches">
-                            <button type="button" class="theme-swatch" data-color="#ffffff" style="background:#ffffff;" title="ホワイト"></button>
-                            <button type="button" class="theme-swatch" data-color="#ff4757" style="background:#ff4757;" title="レッド"></button>
-                            <button type="button" class="theme-swatch" data-color="#ff7eb3" style="background:#ff7eb3;" title="ピンク"></button>
-                            <button type="button" class="theme-swatch" data-color="#ff9f43" style="background:#ff9f43;" title="オレンジ"></button>
-                            <button type="button" class="theme-swatch" data-color="#feca57" style="background:#feca57;" title="イエロー"></button>
-                            <button type="button" class="theme-swatch" data-color="#2ed573" style="background:#2ed573;" title="グリーン"></button>
-                            <button type="button" class="theme-swatch" data-color="#48dbfb" style="background:#48dbfb;" title="ライトブルー"></button>
-                            <button type="button" class="theme-swatch" data-color="#3742fa" style="background:#3742fa;" title="ブルー"></button>
-                            <button type="button" class="theme-swatch" data-color="#a55eea" style="background:#a55eea;" title="パープル"></button>
-                            <button type="button" class="theme-swatch" data-color="#2f3542" style="background:#2f3542;" title="ブラック"></button>
-                        </div>
-                        <div class="theme-custom-row">
-                            <label for="customHeaderColor">自由な色を選択：</label>
-                            <input type="color" id="customHeaderColor" value="#ff4757">
+                        <div class="theme-custom-row" style="border-top: none; padding-top: 2px;">
+                            <label for="customHeaderColor">色を選択：</label>
+                            <input type="color" id="customHeaderColor" value="#ffffff">
                         </div>
                     </div>
                 </div>
@@ -80,7 +68,7 @@
             {% else %}
             <nav class="global-nav">
                 <a href="{{ url_for('login') }}" class="global-nav-item {% if request.endpoint == 'login' %}active{% endif %}">🔑 ログイン</a>
-                <a href="{{ url_for('register') }}" class="global-nav-item {% if request.endpoint == 'register' %}active{% endif %}">👤 新規登録</a>
+                <a href="{{ url_for('register') }}" class="global-nav-item nav-primary {% if request.endpoint == 'register' %}active{% endif %}">👤 新規登録</a>
             </nav>
             {% endif %}
         </div>
@@ -143,13 +131,6 @@
             toggleBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 popover.classList.toggle('is-open');
-            });
-
-            document.querySelectorAll('.theme-swatch').forEach(function(btn) {
-                btn.addEventListener('click', function() {
-                    const color = this.getAttribute('data-color');
-                    selectColor(color);
-                });
             });
 
             if (customInput) {
