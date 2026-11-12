@@ -16,11 +16,15 @@ from PIL import Image
 from PIL.ExifTags import TAGS, GPSTAGS
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your_secret_key_here'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_secret_key_here')
 
-# データベース設定 (SQLite)
+# データベース設定 (Render環境変数 DATABASE_URL があればNeon PostgreSQL、なければローカルSQLite)
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(BASE_DIR, 'oshikatsu.db')
+database_url = os.environ.get('DATABASE_URL')
+if database_url and database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url or ('sqlite:///' + os.path.join(BASE_DIR, 'oshikatsu.db'))
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # 画像アップロード設定
@@ -569,7 +573,7 @@ with app.app_context():
     db.create_all()
     # 既存の memo テーブルに is_public カラムがない場合は自動追加する
     try:
-        db.session.execute(text("ALTER TABLE memo ADD COLUMN is_public BOOLEAN NOT NULL DEFAULT 0"))
+        db.session.execute(text("ALTER TABLE memo ADD COLUMN is_public BOOLEAN NOT NULL DEFAULT FALSE"))
         db.session.commit()
     except Exception:
         db.session.rollback()
