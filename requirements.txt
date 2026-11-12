@@ -4,4 +4,4 @@ Werkzeug
 Pillow
 requests
 gunicorn
-psycopg2-binary
+psycopg[binary]
