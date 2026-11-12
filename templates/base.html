@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}OTALOG｜推し活記録アプリ{% endblock %}</title>
+    <!-- 共通CSSファイルの読み込み -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=13">
+
+    <!-- 🎨 ページ描画前に保存済みヘッダーカラーを即時適用（ユーザーごとに分離） -->
+    <script>
+        (function() {
+            const userId = "{{ session.get('user_id', 'guest') }}";
+            const STORAGE_KEY = 'otalog_header_color_' + userId;
+            window.__HEADER_COLOR_KEY = STORAGE_KEY;
+
+            function applyHeaderTheme(hex) {
+                if (!hex) return;
+                const root = document.documentElement;
+                root.style.setProperty('--header-bg', hex);
+                root.style.setProperty('--accent-color', hex.toLowerCase() === '#ffffff' ? '#ff4757' : hex);
+            }
+            window.__applyHeaderTheme = applyHeaderTheme;
+
+            const savedColor = localStorage.getItem(STORAGE_KEY);
+            if (savedColor) {
+                applyHeaderTheme(savedColor);
+            }
+        })();
+    </script>
+    
+    <!-- 各ページ固有のCSSや外部ライブラリ（Leaflet, FullCalendarなど）を読み込む枠 -->
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body>
+    <!-- 📌 画面上部に固定される共通ヘッダー（子テンプレートから非表示に上書き可能） -->
+    {% block header %}
+    <header class="sticky-header">
+        <div class="header-inner">
+            <a href="{{ url_for('welcome') }}" class="brand-logo">OTALOG</a>
+
+            {% if 'user_id' in session %}
+            <nav class="global-nav">
+                <a href="{{ url_for('list_memos') }}" class="global-nav-item {% if request.endpoint == 'list_memos' %}active{% endif %}">📋 自分の記録</a>
+                <a href="{{ url_for('shared_timeline') }}" class="global-nav-item {% if request.endpoint == 'shared_timeline' %}active{% endif %}">🌐 タイムライン</a>
+                <a href="{{ url_for('calendar_page') }}" class="global-nav-item {% if request.endpoint == 'calendar_page' %}active{% endif %}">📅 カレンダー</a>
+                <a href="{{ url_for('map_page') }}" class="global-nav-item {% if request.endpoint == 'map_page' %}active{% endif %}">🗺️ マップ</a>
+                <a href="{{ url_for('add_page') }}" class="global-nav-item {% if request.endpoint == 'add_page' %}active{% endif %}">✨ 記録する</a>
+                <a href="{{ url_for('logout') }}" class="global-nav-item nav-logout">🚪 ログアウト</a>
+
+                <!-- 🎨 推し色ヘッダー切り替えボタン -->
+                <div class="theme-picker-wrap">
+                    <button type="button" class="theme-toggle-btn" id="themeToggleBtn" title="ヘッダーの推し色を変更">🎨</button>
+                    <div class="theme-popover" id="themePopover">
+                        <div class="theme-popover-title">
+                            <span>💖 ヘッダーの推し色</span>
+                            <button type="button" class="theme-reset-link" id="themeResetBtn">白に戻す</button>
+                        </div>
+                        <div class="theme-swatches">
+                            <button type="button" class="theme-swatch" data-color="#ffffff" style="background:#ffffff;" title="ホワイト"></button>
+                            <button type="button" class="theme-swatch" data-color="#ff4757" style="background:#ff4757;" title="レッド"></button>
+                            <button type="button" class="theme-swatch" data-color="#ff7eb3" style="background:#ff7eb3;" title="ピンク"></button>
+                            <button type="button" class="theme-swatch" data-color="#ff9f43" style="background:#ff9f43;" title="オレンジ"></button>
+                            <button type="button" class="theme-swatch" data-color="#feca57" style="background:#feca57;" title="イエロー"></button>
+                            <button type="button" class="theme-swatch" data-color="#2ed573" style="background:#2ed573;" title="グリーン"></button>
+                            <button type="button" class="theme-swatch" data-color="#48dbfb" style="background:#48dbfb;" title="ライトブルー"></button>
+                            <button type="button" class="theme-swatch" data-color="#3742fa" style="background:#3742fa;" title="ブルー"></button>
+                            <button type="button" class="theme-swatch" data-color="#a55eea" style="background:#a55eea;" title="パープル"></button>
+                            <button type="button" class="theme-swatch" data-color="#2f3542" style="background:#2f3542;" title="ブラック"></button>
+                        </div>
+                        <div class="theme-custom-row">
+                            <label for="customHeaderColor">自由な色を選択：</label>
+                            <input type="color" id="customHeaderColor" value="#ff4757">
+                        </div>
+                    </div>
+                </div>
+            </nav>
+            {% else %}
+            <nav class="global-nav">
+                <a href="{{ url_for('login') }}" class="global-nav-item {% if request.endpoint == 'login' %}active{% endif %}">🔑 ログイン</a>
+                <a href="{{ url_for('register') }}" class="global-nav-item {% if request.endpoint == 'register' %}active{% endif %}">👤 新規登録</a>
+            </nav>
+            {% endif %}
+        </div>
+    </header>
+    {% endblock %}
+
+    <!-- メインコンテンツ領域 -->
+    <div class="container">
+        <!-- 全ページ共通フラッシュメッセージ -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="flash-message" style="background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;">
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- 🏷️ 全ページ統一・ページタイトルバナー（不要なページからは非表示に上書き可能） -->
+        {% block page_header %}
+        <div class="page-title-banner">
+            <h1 id="pageTitle">{% block page_title %}{% endblock %}</h1>
+            {% if self.page_subtitle() %}
+            <p>{% block page_subtitle %}{% endblock %}</p>
+            {% endif %}
+        </div>
+        {% endblock %}
+
+        <!-- 各ページの固有コンテンツがここに入る -->
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- 🎨 ヘッダーカラー切り替えUI制御 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleBtn = document.getElementById('themeToggleBtn');
+            const popover = document.getElementById('themePopover');
+            const customInput = document.getElementById('customHeaderColor');
+            const resetBtn = document.getElementById('themeResetBtn');
+            const storageKey = window.__HEADER_COLOR_KEY || 'otalog_header_color_guest';
+
+            if (!toggleBtn || !popover) return;
+
+            const saved = localStorage.getItem(storageKey);
+            if (saved && customInput) {
+                customInput.value = saved;
+            }
+
+            function selectColor(color) {
+                localStorage.setItem(storageKey, color);
+                if (window.__applyHeaderTheme) {
+                    window.__applyHeaderTheme(color);
+                }
+                if (customInput) {
+                    customInput.value = color;
+                }
+            }
+
+            toggleBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                popover.classList.toggle('is-open');
+            });
+
+            document.querySelectorAll('.theme-swatch').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const color = this.getAttribute('data-color');
+                    selectColor(color);
+                });
+            });
+
+            if (customInput) {
+                customInput.addEventListener('input', function() {
+                    selectColor(this.value);
+                });
+            }
+
+            if (resetBtn) {
+                resetBtn.addEventListener('click', function() {
+                    selectColor('#ffffff');
+                });
+            }
+
+            document.addEventListener('click', function(e) {
+                if (!popover.contains(e.target) && e.target !== toggleBtn) {
+                    popover.classList.remove('is-open');
+                }
+            });
+        });
+    </script>
+
+    <!-- 各ページ固有のJavaScriptを読み込む枠 -->
+    {% block extra_scripts %}{% endblock %}
+</body>
+
+</html>

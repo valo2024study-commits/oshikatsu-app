@@ -1,12 +1,12 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>推し活カレンダー & 年表</title>
-    <!-- 共通CSSファイルの読み込み -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    
+<!-- templates/calendar.html -->
+{% extends "base.html" %}
+
+{% block title %}推し活カレンダー & 年表｜推し活記録アプリ{% endblock %}
+
+{% block page_title %}📅 推し活カレンダー{% endblock %}
+{% block page_subtitle %}{% endblock %}
+
+{% block extra_head %}
     <!-- FullCalendar (カレンダー描画ライブラリ) の読み込み -->
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
     
@@ -19,7 +19,7 @@
             display: flex;
             justify-content: center;
             gap: 12px;
-            margin: 15px auto 5px;
+            margin: 5px auto 15px;
             max-width: 900px;
         }
 
@@ -103,7 +103,7 @@
             filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
         }
 
-        /* 📜 年表（タイムライン）デザイン */
+        /* 📜 年表デザイン */
         .timeline-container {
             max-width: 900px;
             margin: 15px auto;
@@ -259,68 +259,57 @@
             }
         }
     </style>
-</head>
-<body>
-    <div class="container">
-        <!-- ヘッダーエリア -->
-        <div class="header-nav">
-            <h1 id="pageTitle">📅 推し活カレンダー</h1>
-            <div class="btn-group">
-                <a href="{{ url_for('map_page') }}" class="nav-btn btn-map">🗺️ マップ</a>
-                <a href="{{ url_for('add_page') }}" class="create-btn btn-add">✨ 新しい思い出</a>
-                <a href="{{ url_for('list_memos') }}" class="nav-btn btn-list">📋 一覧で見る</a>
-            </div>
-        </div>
+{% endblock %}
 
-        <!-- 🔀 表示切り替えトグルボタン -->
-        <div class="view-switch-container">
-            <button class="switch-btn active" id="btnViewCalendar" onclick="switchView('calendar')">📅 カレンダー</button>
-            <button class="switch-btn" id="btnViewTimeline" onclick="switchView('timeline')">📜 年表（タイムライン）</button>
-        </div>
+{% block content %}
+    <!-- 🔀 表示切り替えトグルボタン -->
+    <div class="view-switch-container">
+        <button class="switch-btn active" id="btnViewCalendar" onclick="switchView('calendar')">📅 カレンダー</button>
+        <button class="switch-btn" id="btnViewTimeline" onclick="switchView('timeline')">📜 年表</button>
+    </div>
 
-        <!-- 📅 カレンダーコンテナ -->
-        <div class="calendar-container" id="calendarView">
-            <div id="calendar"></div>
-        </div>
+    <!-- 📅 カレンダーコンテナ -->
+    <div class="calendar-container" id="calendarView">
+        <div id="calendar"></div>
+    </div>
 
-        <!-- 📜 年表（タイムライン）コンテナ -->
-        <div class="timeline-container" id="timelineView">
-            {% if timeline_memos and timeline_memos|length > 0 %}
-                <div class="timeline-wrapper">
-                    {% for memo in timeline_memos %}
-                    <div class="timeline-item">
-                        <div class="timeline-dot" style="background-color: {{ memo.color or '#ff4757' }};"></div>
-                        <div class="timeline-card" style="border-left-color: {{ memo.color or '#ff4757' }};">
-                            <div class="timeline-date">📅 {{ memo.oshikatsu_date }}</div>
-                            <div class="timeline-header">
-                                <span class="timeline-title">{{ memo.activity_type or '推し活' }}</span>
-                                {% for name in memo.oshi_names %}
-                                    <span class="oshi-tag" style="background-color: {{ memo.color or '#ff4757' }};">♥ {{ name }}</span>
-                                {% endfor %}
-                                {% if memo.location_name %}
-                                    <span style="font-size: 0.8rem; color: #747d8c;">📍 {{ memo.location_name }}</span>
-                                {% endif %}
-                            </div>
-                            <div class="timeline-content">{{ memo.content }}</div>
-                            
-                            {% if memo.image_files and memo.image_files|length > 0 %}
-                            <div class="timeline-photos">
-                                {% for img in memo.image_files %}
-                                    <img src="{{ url_for('static', filename='uploads/' + img) }}" alt="思い出写真">
-                                {% endfor %}
-                            </div>
+    <!-- 📜 年表コンテナ -->
+    <div class="timeline-container" id="timelineView">
+        {% if timeline_memos and timeline_memos|length > 0 %}
+            <div class="timeline-wrapper">
+                {% for memo in timeline_memos %}
+                <div class="timeline-item">
+                    <div class="timeline-dot" style="background-color: {{ memo.color or '#ff4757' }};"></div>
+                    <div class="timeline-card" style="border-left-color: {{ memo.color or '#ff4757' }};">
+                        <div class="timeline-date">📅 {{ memo.oshikatsu_date }}</div>
+                        <div class="timeline-header">
+                            <span class="timeline-title">{{ memo.activity_type or '推し活' }}</span>
+                            {% for name in memo.oshi_names %}
+                                <span class="oshi-tag" style="background-color: {{ memo.color or '#ff4757' }};">♥ {{ name }}</span>
+                            {% endfor %}
+                            {% if memo.location_name %}
+                                <span style="font-size: 0.8rem; color: #747d8c;">📍 {{ memo.location_name }}</span>
                             {% endif %}
                         </div>
+                        <div class="timeline-content">{{ memo.content }}</div>
+                        
+                        {% if memo.image_files and memo.image_files|length > 0 %}
+                        <div class="timeline-photos">
+                            {% for img in memo.image_files %}
+                                <img src="{{ url_for('static', filename='uploads/' + img) }}" alt="思い出写真">
+                            {% endfor %}
+                        </div>
+                        {% endif %}
                     </div>
-                    {% endfor %}
                 </div>
-            {% else %}
-                <div class="timeline-empty">
-                    <p>🌸 まだ推し活の記録がありません。</p>
-                    <p>「✨ 新しい思い出」ボタンから記録を追加してみましょう！</p>
-                </div>
-            {% endif %}
-        </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="timeline-empty">
+                <p>🌸 まだ推し活の記録がありません。</p>
+                <p>上部メニューの「✨ 記録する」ボタンから記録を追加してみましょう！</p>
+            </div>
+        {% endif %}
     </div>
 
     <!-- 思い出詳細ポップアップ（モーダル） -->
@@ -351,7 +340,9 @@
             </div>
         </div>
     </div>
+{% endblock %}
 
+{% block extra_scripts %}
     <script>
         let calendarObj = null;
 
@@ -499,7 +490,7 @@
                 timelineView.style.display = 'none';
                 btnCalendar.classList.add('active');
                 btnTimeline.classList.remove('active');
-                pageTitle.textContent = '📅 推し活カレンダー';
+                if (pageTitle) pageTitle.textContent = '📅 推し活カレンダー';
                 
                 // 非表示から復帰時にカレンダーサイズを再調整
                 if (calendarObj) {
@@ -510,7 +501,7 @@
                 timelineView.style.display = 'block';
                 btnCalendar.classList.remove('active');
                 btnTimeline.classList.add('active');
-                pageTitle.textContent = '📜 推し活年表（タイムライン）';
+                if (pageTitle) pageTitle.textContent = '📜 推し活年表';
             }
         }
 
@@ -609,5 +600,4 @@
             });
         }
     </script>
-</body>
-</html>
+{% endblock %}

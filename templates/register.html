@@ -1,27 +1,13 @@
 <!-- templates/register.html -->
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>新規アカウント作成｜推し活記録アプリ</title>
-    <!-- 共通CSSファイルの読み込み -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <div class="container auth-container">
-        <h1>👤 アカウント登録</h1>
+{% extends "base.html" %}
 
-        <!-- フラッシュメッセージ -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            {% for category, message in messages %}
-              <div class="flash-message">
-                {{ message }}
-              </div>
-            {% endfor %}
-          {% endif %}
-        {% endwith %}
+{% block title %}新規アカウント作成｜推し活記録アプリ{% endblock %}
+{% block header %}{% endblock %}
+{% block page_header %}{% endblock %}
+
+{% block content %}
+    <div class="auth-container" style="margin-left: auto; margin-right: auto;">
+        <h1>👤 アカウント登録</h1>
 
         <form action="{{ url_for('register') }}" method="POST">
             <div class="form-group">
@@ -40,5 +26,4 @@
             <a href="{{ url_for('login') }}">登録済みの方はこちら（ログイン）</a>
         </p>
     </div>
-</body>
-</html>
+{% endblock %}

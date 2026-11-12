@@ -1,142 +1,126 @@
-<!DOCTYPE html>
-<html lang="ja">
+<!-- templates/shared_timeline.html -->
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>みんなのタイムライン｜推し活記録アプリ</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
+{% block title %}みんなのタイムライン｜推し活記録アプリ{% endblock %}
 
-<body>
-    <div class="container">
-        <!-- ヘッダー＆ナビゲーション -->
-        <div class="timeline-header">
-            <div class="timeline-title-area">
-                <h1>🌐 みんなの推し活タイムライン</h1>
-                <p>公開設定されたみんなの推し活の思い出をリアルタイムで共有しよう</p>
-            </div>
-            <div class="nav-buttons">
-                <a href="{{ url_for('add_page') }}" class="nav-btn btn-add">✨ 記録する</a>
-                <a href="{{ url_for('list_memos') }}" class="nav-btn btn-map-add">📋 自分の記録</a>
-                <a href="{{ url_for('calendar_page') }}" class="nav-btn btn-calendar">📅 カレンダー・年表</a>
-                <a href="{{ url_for('map_page') }}" class="nav-btn btn-map">🗺️ マップ</a>
-                <a href="{{ url_for('welcome') }}" class="nav-btn btn-list">🏠 ホーム</a>
-            </div>
-        </div>
 
-        <!-- 絞り込みフィルター -->
-        <div class="filter-card">
-            <form method="GET" action="{{ url_for('shared_timeline') }}" class="filter-form">
-                <div class="filter-group">
-                    <label for="oshi">💖 推し名で絞り込み</label>
-                    <select name="oshi" id="oshi">
-                        <option value="">すべての推し</option>
-                        {% for oshi in all_oshi_list %}
-                            <option value="{{ oshi }}" {% if selected_oshi == oshi %}selected{% endif %}>{{ oshi }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
 
-                <div class="filter-group">
-                    <label for="type">🏷️ 活動の種類で絞り込み</label>
-                    <select name="type" id="type">
-                        <option value="">すべての活動</option>
-                        {% for t in all_types_list %}
-                            <option value="{{ t }}" {% if selected_type == t %}selected{% endif %}>{{ t }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
+{% block page_title %}🌐 みんなの推し活タイムライン{% endblock %}
+{% block page_subtitle %}{% endblock %}
+{% block content %}
 
-                <div class="filter-actions">
-                    <button type="submit" class="btn-filter">🔍 絞り込む</button>
-                    {% if selected_oshi or selected_type %}
-                        <a href="{{ url_for('shared_timeline') }}" class="btn-reset">リセット</a>
-                    {% endif %}
-                </div>
-            </form>
-        </div>
-
-        <!-- タイムライン一覧 -->
-        <div class="feed-list">
-            {% if shared_memos %}
-                {% for memo in shared_memos %}
-                    <div class="feed-card" style="border-left-color: {{ memo.color or '#4b7bec' }};">
-                        <div class="feed-card-top">
-                            <div class="user-info">
-                                <div class="user-avatar" style="background-color: {{ memo.color or '#ff4757' }};">
-                                    {{ memo.user.username[0] | upper if memo.user else '?' }}
-                                </div>
-                                <span class="username-text">{{ memo.user.username if memo.user else '匿名ユーザー' }}</span>
-                                {% if memo.user_id == session['user_id'] %}
-                                    <span class="mine-badge">自分</span>
-                                {% endif %}
-                            </div>
-
-                            <div class="post-meta">
-                                <span class="activity-badge" style="background-color: {{ memo.color or '#4b7bec' }};">
-                                    {{ memo.activity_type or '推し活' }}
-                                </span>
-                                <span>📅 {{ memo.oshikatsu_date }}</span>
-                            </div>
-                        </div>
-
-                        {% if memo.oshi_names %}
-                            <div class="oshi-tags">
-                                {% for name in memo.oshi_names %}
-                                    <span class="oshi-tag"># {{ name }}</span>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-
-                        <div class="feed-content">{{ memo.content }}</div>
-
-                        {% if memo.location_name %}
-                            <div class="feed-location">
-                                📍 {{ memo.location_name }}
-                            </div>
-                        {% endif %}
-
-                        {% if memo.image_files %}
-                            <div class="feed-images">
-                                {% for img in memo.image_files %}
-                                    <img src="{{ url_for('static', filename='uploads/' + img) }}" alt="推し活写真" onclick="openImageModal(this.src)">
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-
-                        {% if memo.user_id == session['user_id'] %}
-                            <div class="feed-card-footer">
-                                <a href="{{ url_for('edit_memo', memo_id=memo.id) }}" class="edit-link">✏️ この投稿を編集・非公開にする</a>
-                            </div>
-                        {% endif %}
-                    </div>
+<!-- 絞り込みフィルター -->
+<div class="filter-card">
+    <form method="GET" action="{{ url_for('shared_timeline') }}" class="filter-form">
+        <div class="filter-group">
+            <label for="oshi">💖 推し名で絞り込み</label>
+            <select name="oshi" id="oshi">
+                <option value="">すべての推し</option>
+                {% for oshi in all_oshi_list %}
+                <option value="{{ oshi }}" {% if selected_oshi==oshi %}selected{% endif %}>{{ oshi }}</option>
                 {% endfor %}
-            {% else %}
-                <div class="empty-state">
-                    <p>まだ公開されている投稿がありません</p>
-                    <p>記録の追加・編集画面で「みんなに公開する」にチェックを入れると、ここに表示されます！</p>
-                    <a href="{{ url_for('add_page') }}" class="nav-btn btn-add">✨ 最初の投稿をする</a>
-                </div>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label for="type">🏷️ 活動の種類で絞り込み</label>
+            <select name="type" id="type">
+                <option value="">すべての活動</option>
+                {% for t in all_types_list %}
+                <option value="{{ t }}" {% if selected_type==t %}selected{% endif %}>{{ t }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="filter-actions">
+            <button type="submit" class="btn-filter">🔍 絞り込む</button>
+            {% if selected_oshi or selected_type %}
+            <a href="{{ url_for('shared_timeline') }}" class="btn-reset">リセット</a>
             {% endif %}
         </div>
+    </form>
+</div>
+
+<!-- タイムライン一覧 -->
+<div class="feed-list">
+    {% if shared_memos %}
+    {% for memo in shared_memos %}
+    <div class="feed-card" style="border-left-color: {{ memo.color or '#4b7bec' }};">
+        <div class="feed-card-top">
+            <div class="user-info">
+                <div class="user-avatar" style="background-color: {{ memo.color or '#ff4757' }};">
+                    {{ memo.user.username[0] | upper if memo.user else '?' }}
+                </div>
+                <span class="username-text">{{ memo.user.username if memo.user else '匿名ユーザー' }}</span>
+                {% if memo.user_id == session['user_id'] %}
+                <span class="mine-badge">自分</span>
+                {% endif %}
+            </div>
+
+            <div class="post-meta">
+                <span class="activity-badge" style="background-color: {{ memo.color or '#4b7bec' }};">
+                    {{ memo.activity_type or '推し活' }}
+                </span>
+                <span>📅 {{ memo.oshikatsu_date }}</span>
+            </div>
+        </div>
+
+        {% if memo.oshi_names %}
+        <div class="oshi-tags">
+            {% for name in memo.oshi_names %}
+            <span class="oshi-tag"># {{ name }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="feed-content">{{ memo.content }}</div>
+
+        {% if memo.location_name %}
+        <div class="feed-location">
+            📍 {{ memo.location_name }}
+        </div>
+        {% endif %}
+
+        {% if memo.image_files %}
+        <div class="feed-images">
+            {% for img in memo.image_files %}
+            <img src="{{ url_for('static', filename='uploads/' + img) }}" alt="推し活写真"
+                onclick="openImageModal(this.src)">
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if memo.user_id == session['user_id'] %}
+        <div class="feed-card-footer">
+            <a href="{{ url_for('edit_memo', memo_id=memo.id) }}" class="edit-link">✏️ この投稿を編集・非公開にする</a>
+        </div>
+        {% endif %}
     </div>
-
-    <!-- 画像拡大モーダル -->
-    <div id="imageModal" class="img-modal" onclick="closeImageModal()">
-        <img id="modalImg" src="" alt="拡大画像">
+    {% endfor %}
+    {% else %}
+    <div class="empty-state">
+        <p>まだ公開されている投稿がありません</p>
+        <p>記録の追加・編集画面で「みんなに公開する」にチェックを入れると、ここに表示されます！</p>
+        <a href="{{ url_for('add_page') }}" class="nav-btn btn-add">✨ 最初の投稿をする</a>
     </div>
+    {% endif %}
+</div>
 
-    <script>
-        function openImageModal(src) {
-            document.getElementById('modalImg').src = src;
-            document.getElementById('imageModal').style.display = 'flex';
-        }
+<!-- 画像拡大モーダル -->
+<div id="imageModal" class="img-modal" onclick="closeImageModal()">
+    <img id="modalImg" src="" alt="拡大画像">
+</div>
+{% endblock %}
 
-        function closeImageModal() {
-            document.getElementById('imageModal').style.display = 'none';
-        }
-    </script>
-</body>
+{% block extra_scripts %}
+<script>
+    function openImageModal(src) {
+        document.getElementById('modalImg').src = src;
+        document.getElementById('imageModal').style.display = 'flex';
+    }
 
-</html>
+    function closeImageModal() {
+        document.getElementById('imageModal').style.display = 'none';
+    }
+</script>
+{% endblock %}

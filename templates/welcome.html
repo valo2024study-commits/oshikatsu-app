@@ -1,12 +1,13 @@
-<!DOCTYPE html>
-<html lang="ja">
+<!-- templates/welcome.html -->
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ウェルカム｜推し活記録アプリ</title>
-    <!-- 共通CSSファイルの読み込み -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{% block title %}ウェルカム｜推し活記録アプリ{% endblock %}
+
+{# ウェルカム画面では共通ヘッダーとページタイトルバナーを非表示にする #}
+{% block header %}{% endblock %}
+{% block page_header %}{% endblock %}
+
+{% block extra_head %}
     <style>
         /* welcome.html 固有のウェルカムボックススタイル */
         .welcome-box {
@@ -80,31 +81,27 @@
             }
         }
     </style>
-</head>
+{% endblock %}
 
-<body>
-    <div class="container">
-        <div class="welcome-box">
-            <h1 class="welcome-title">💖 Oshikatsu Life</h1>
-            <p class="welcome-tagline">推しとの大切な思い出を、綺麗に残そう</p>
+{% block content %}
+    <div class="welcome-box">
+        <h1 class="welcome-title">OTALOG</h1>
+        <p class="welcome-tagline">推しとの大切な思い出を、綺麗に残そう</p>
 
-            <div class="welcome-buttons">
-                {% if 'user_id' in session %}
-                    <!-- ログイン中の表示（共通ボタンカラー適用） -->
-                    <a href="{{ url_for('add_page') }}" class="welcome-btn btn-add">✨ 新しく思い出を記録する</a>
-                    <a href="{{ url_for('list_memos') }}" class="welcome-btn btn-map-add">📋 これまでの思い出を見る</a>
-                    <a href="{{ url_for('shared_timeline') }}" class="welcome-btn btn-timeline">🌐 みんなのタイムラインを見る</a>
-                    <a href="{{ url_for('calendar_page') }}" class="welcome-btn btn-calendar">📅 カレンダーを見る</a>
-                    <a href="{{ url_for('map_page') }}" class="welcome-btn btn-map">🗺️ マップを見る</a>
-                    <a href="{{ url_for('logout') }}" class="welcome-btn outline" style="margin-top: 6px;">🚪 ログアウト</a>
-                {% else %}
-                    <!-- 未ログイン時の表示 -->
-                    <a href="{{ url_for('login') }}" class="welcome-btn btn-add">🔑 ログイン</a>
-                    <a href="{{ url_for('register') }}" class="welcome-btn btn-map-add">👤 新規登録</a>
-                {% endif %}
-            </div>
+        <div class="welcome-buttons">
+            {% if 'user_id' in session %}
+                <!-- ログイン中の表示（共通ボタンカラー適用） -->
+                <a href="{{ url_for('add_page') }}" class="welcome-btn btn-add">✨ 新しく思い出を記録する</a>
+                <a href="{{ url_for('list_memos') }}" class="welcome-btn btn-map-add">📋 これまでの思い出を見る</a>
+                <a href="{{ url_for('shared_timeline') }}" class="welcome-btn btn-timeline">🌐 みんなのタイムラインを見る</a>
+                <a href="{{ url_for('calendar_page') }}" class="welcome-btn btn-calendar">📅 カレンダーを見る</a>
+                <a href="{{ url_for('map_page') }}" class="welcome-btn btn-map">🗺️ マップを見る</a>
+                <a href="{{ url_for('logout') }}" class="welcome-btn outline" style="margin-top: 6px;">🚪 ログアウト</a>
+            {% else %}
+                <!-- 未ログイン時の表示 -->
+                <a href="{{ url_for('login') }}" class="welcome-btn btn-add">🔑 ログイン</a>
+                <a href="{{ url_for('register') }}" class="welcome-btn btn-map-add">👤 新規登録</a>
+            {% endif %}
         </div>
     </div>
-</body>
-
-</html>
+{% endblock %}
